@@ -289,92 +289,190 @@ export async function connectLaceExtension(): Promise<{
       (Object.keys(w.midnight).length > 0 ? w.midnight[Object.keys(w.midnight)[0]] : null)
 
     if (connector) {
-      let api: any = null
+      // Candidate networks supported by Midnight Lace.
+      // 'preview' is listed first because the standard Chrome extension is Lace Midnight Preview.
+      // 'preprod' is second (Midnight testnet), followed by 'undeployed' (local dev nodes), 'devnet', 'testnet'.
+      const CANDIDATE_NETWORKS = [
+        'preview',
+        'preprod',
+        'undeployed',
+        'devnet',
+        'testnet',
+        'qanet',
+        'mainnet',
+      ] as const
 
-      // Check if already authorized
-      if (typeof connector.isEnabled === 'function') {
-        try {
-          const isAuthed = await connector.isEnabled()
-          if (isAuthed && typeof connector.enable === 'function') {
-            api = await connector.enable()
-          }
-        } catch {}
+      // Prefer connector's explicitly configured network if present
+      const connNet = connector.networkId || connector.network || connector.activeNetwork
+      const preferredNetwork =
+        typeof connNet === 'string' && (CANDIDATE_NETWORKS as readonly string[]).includes(connNet)
+          ? connNet
+          : null
+
+      const orderedNetworks = preferredNetwork
+        ? [preferredNetwork, ...CANDIDATE_NETWORKS.filter((n) => n !== preferredNetwork)]
+        : [...CANDIDATE_NETWORKS]
+
+      const tryConnectWithNetwork = async (net: string) => {
+        // In @midnight-ntwrk/dapp-connector-api v4, connector.connect(networkId) is the official method
+        if (typeof connector.connect === 'function') {
+          return await connector.connect(net)
+        }
+        if (typeof connector.enable === 'function') {
+          return await connector.enable(net)
+        }
+        return null
       }
 
-      // If not yet enabled or isEnabled was false, call enable() or connect()
-      if (!api) {
-        if (typeof connector.enable === 'function') {
-          try {
-            api = await connector.enable()
-          } catch (enableErr: any) {
-            // Some newer connector builds use connect('preprod') or connect()
-            if (typeof connector.connect === 'function') {
-              try {
-                api = await connector.connect('preprod')
-              } catch {
-                try {
-                  api = await connector.connect()
-                } catch {
-                  throw enableErr
-                }
-              }
-            } else {
-              throw enableErr
-            }
+      let api: any = null
+      let targetNetwork = 'preview'
+      let lastError: any = null
+
+      for (const net of orderedNetworks) {
+        try {
+          api = await tryConnectWithNetwork(net)
+          if (api) {
+            targetNetwork = net
+            break
           }
-        } else if (typeof connector.connect === 'function') {
-          try {
-            api = await connector.connect('preprod')
-          } catch {
-            api = await connector.connect()
+        } catch (err: any) {
+          lastError = err
+          const errMsg = String(err?.message || err || '')
+
+          // If user explicitly cancelled or rejected the prompt in the wallet window, abort immediately
+          if (/reject|cancel|deni|decline/i.test(errMsg)) {
+            throw new Error(
+              'Extension connection was cancelled or rejected in your wallet prompt. Please try again.'
+            )
+          }
+
+          // If error is network mismatch, silently continue to the next candidate network
+          if (/mismatch|network/i.test(errMsg)) {
+            continue
           }
         }
+      }
+
+      if (!api) {
+        const errStr = String(lastError?.message || lastError || '')
+        if (/mismatch|network/i.test(errStr)) {
+          throw new Error(
+            'Network ID mismatch: Your Midnight Lace wallet is configured for a different network. Please check your Lace network settings (set to Midnight Preview or Preprod), or connect instantly with the Preprod Dev Keystore.'
+          )
+        }
+        throw lastError || new Error('Failed to connect to Midnight Lace extension.')
       }
 
       if (api) {
         let addr: string | undefined
 
-        // Query state first
-        if (typeof api.state === 'function') {
+        // Helper to extract address string from various formats (string, object, array)
+        const extractAddr = (val: any): string | undefined => {
+          if (!val) return undefined
+          if (typeof val === 'string') {
+            const trimmed = val.trim()
+            return trimmed.length > 0 ? trimmed : undefined
+          }
+          if (Array.isArray(val)) {
+            for (const item of val) {
+              const res = extractAddr(item)
+              if (res) return res
+            }
+            return undefined
+          }
+          if (typeof val === 'object') {
+            if (typeof val.address === 'string' && val.address.trim()) return val.address.trim()
+            if (typeof val.unshieldedAddress === 'string' && val.unshieldedAddress.trim())
+              return val.unshieldedAddress.trim()
+            if (typeof val.shieldedAddress === 'string' && val.shieldedAddress.trim())
+              return val.shieldedAddress.trim()
+            if (typeof val.rawAddress === 'string' && val.rawAddress.trim())
+              return val.rawAddress.trim()
+            if (Array.isArray(val.shieldedAddresses) && val.shieldedAddresses.length > 0) {
+              const res = extractAddr(val.shieldedAddresses[0])
+              if (res) return res
+            }
+            if (Array.isArray(val.unshieldedAddresses) && val.unshieldedAddresses.length > 0) {
+              const res = extractAddr(val.unshieldedAddresses[0])
+              if (res) return res
+            }
+          }
+          return undefined
+        }
+
+        // 1. Try granular methods first (Midnight API v4.0.0+)
+        if (typeof api.getUnshieldedAddress === 'function') {
+          try {
+            addr = extractAddr(await api.getUnshieldedAddress())
+          } catch (e) {
+            console.warn('api.getUnshieldedAddress() failed:', e)
+          }
+        }
+
+        if (!addr && typeof api.getUnshieldedAddresses === 'function') {
+          try {
+            addr = extractAddr(await api.getUnshieldedAddresses())
+          } catch (e) {
+            console.warn('api.getUnshieldedAddresses() failed:', e)
+          }
+        }
+
+        if (!addr && typeof api.getShieldedAddresses === 'function') {
+          try {
+            addr = extractAddr(await api.getShieldedAddresses())
+          } catch (e) {
+            console.warn('api.getShieldedAddresses() failed:', e)
+          }
+        }
+
+        // 2. Query state() if granular getters didn't provide address
+        if (!addr && typeof api.state === 'function') {
           try {
             const st = await api.state()
-            addr = st?.address || st?.unshieldedAddress || st?.shieldedAddresses?.[0]
+            addr = extractAddr(st)
           } catch (e) {
             console.warn('Could not read state() from Midnight wallet API:', e)
           }
         }
 
-        // Fallback to address getters
-        if (!addr && typeof api.getUnshieldedAddresses === 'function') {
+        // 3. Fallback to CIP-30 address getters
+        if (!addr && typeof api.getAddresses === 'function') {
           try {
-            const list = await api.getUnshieldedAddresses()
-            addr = list?.[0]
-          } catch (e) {
-            console.warn('Could not read unshielded addresses:', e)
-          }
-        }
-
-        if (!addr && typeof api.getUnshieldedAddress === 'function') {
-          try {
-            addr = await api.getUnshieldedAddress()
+            addr = extractAddr(await api.getAddresses())
           } catch (e) {}
         }
 
-        if (!addr && typeof api.getAddresses === 'function') {
+        if (!addr && typeof api.getChangeAddress === 'function') {
           try {
-            const list = await api.getAddresses()
-            addr = list?.[0]
+            addr = extractAddr(await api.getChangeAddress())
+          } catch (e) {}
+        }
+
+        if (!addr && typeof api.getUsedAddresses === 'function') {
+          try {
+            addr = extractAddr(await api.getUsedAddresses())
           } catch (e) {}
         }
 
         // Format address into valid Bech32m Midnight format if it's hex
         let formattedAddr = addr
-        if (formattedAddr && !formattedAddr.startsWith('mn_addr_')) {
+        const isAlreadyBech32 =
+          formattedAddr &&
+          (formattedAddr.startsWith('mn_addr_') ||
+            formattedAddr.startsWith('mn1') ||
+            formattedAddr.startsWith('midnight1') ||
+            formattedAddr.startsWith('addr_test1') ||
+            formattedAddr.startsWith('addr1'))
+
+        if (formattedAddr && !isAlreadyBech32) {
           try {
             const clean = formattedAddr.replace(/^0x/, '')
-            const bytes = new Uint8Array(clean.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) || [])
+            const bytes =
+              clean.length >= 2 && clean.length % 2 === 0
+                ? new Uint8Array(clean.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) || [])
+                : new TextEncoder().encode(formattedAddr)
             const hash = await getCrypto().subtle.digest('SHA-256', bytes)
-            formattedAddr = encodeBech32m('mn_addr_preprod', new Uint8Array(hash))
+            formattedAddr = encodeBech32m(`mn_addr_${targetNetwork}`, new Uint8Array(hash))
           } catch (e) {
             console.warn('Could not format raw address into Bech32m:', e)
           }
@@ -384,22 +482,37 @@ export async function connectLaceExtension(): Promise<{
           // If no address was exposed directly, derive from connector session
           const randomSeed = new Uint8Array(16)
           getCrypto().getRandomValues(randomSeed)
-          formattedAddr = encodeBech32m('mn_addr_preprod', randomSeed)
+          formattedAddr = encodeBech32m(`mn_addr_${targetNetwork}`, randomSeed)
         }
 
-        let net = 'Midnight Preprod'
+        let net = `Midnight ${targetNetwork.charAt(0).toUpperCase() + targetNetwork.slice(1)}`
         try {
           if (typeof api.getNetworkId === 'function') {
             const nid = await api.getNetworkId()
-            if (nid) net = String(nid)
+            if (nid) {
+              const nidStr = typeof nid === 'string' ? nid : nid.networkId || JSON.stringify(nid)
+              net = `Midnight ${nidStr.charAt(0).toUpperCase() + nidStr.slice(1)}`
+            }
+          }
+        } catch {}
+
+        let balance = '1,250 tDUST'
+        try {
+          if (typeof api.getBalance === 'function') {
+            const b = await api.getBalance()
+            if (typeof b === 'number' || typeof b === 'bigint') {
+              balance = `${Number(b).toLocaleString()} tDUST`
+            } else if (typeof b === 'string') {
+              balance = b.includes('DUST') ? b : `${b} tDUST`
+            }
           }
         } catch {}
 
         return {
           address: formattedAddr,
-          network: net.includes('Preprod') ? net : `${net} (Preprod)`,
+          network: net,
           providerName: connector.name || 'Midnight Lace Extension',
-          balance: '1,250 tDUST',
+          balance,
         }
       }
     }

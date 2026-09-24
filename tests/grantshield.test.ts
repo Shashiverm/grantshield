@@ -16,6 +16,7 @@ import {
   importMidnightWallet,
   detectBrowserWallets,
   deriveMidnightAddressFromEth,
+  connectLaceExtension,
 } from '../src/utils/midnightWallet'
 
 describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
@@ -241,4 +242,94 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     expect(detection).toHaveProperty('hasCardanoLace')
     expect(detection).toHaveProperty('hasInjectedWeb3')
   })
+
+  it('connects to Midnight Lace extension passing valid target network ID (preview or preprod)', async () => {
+    const origWindow = (globalThis as any).window
+    const passedNetworks: string[] = []
+
+    ;(globalThis as any).window = {
+      midnight: {
+        mnLace: {
+          name: 'Midnight Lace Preview',
+          connect: async (netId: string) => {
+            passedNetworks.push(`connect:${netId}`)
+            return {
+              getUnshieldedAddress: async () => 'mn_addr_preview1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
+              getNetworkId: async () => 'preview',
+              getBalance: async () => 1250,
+            }
+          },
+        },
+      },
+    }
+
+    try {
+      const conn = await connectLaceExtension()
+      expect(conn.network).toContain('Preview')
+      expect(conn.address).toBe('mn_addr_preview1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q')
+      expect(passedNetworks).toContain('connect:preview')
+    } finally {
+      ;(globalThis as any).window = origWindow
+    }
+  })
+
+  it('automatically probes and resolves network when preview throws Network ID mismatch', async () => {
+    const origWindow = (globalThis as any).window
+    const attempts: string[] = []
+
+    ;(globalThis as any).window = {
+      midnight: {
+        mnLace: {
+          name: 'Midnight Lace Extension',
+          connect: async (netId: string) => {
+            attempts.push(netId)
+            if (netId === 'preview') {
+              throw new Error('Network ID mismatch')
+            }
+            if (netId === 'preprod') {
+              return {
+                getUnshieldedAddress: async () => 'mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
+                getNetworkId: async () => 'preprod',
+                getBalance: async () => 1250,
+              }
+            }
+            throw new Error('Network ID mismatch')
+          },
+        },
+      },
+    }
+
+    try {
+      const conn = await connectLaceExtension()
+      expect(conn.network).toContain('Preprod')
+      expect(conn.address).toBe('mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q')
+      expect(attempts).toEqual(['preview', 'preprod'])
+    } finally {
+      ;(globalThis as any).window = origWindow
+    }
+  })
+
+  it('rejects with clean user-friendly error if Lace connection prompt is cancelled', async () => {
+    const origWindow = (globalThis as any).window
+
+    ;(globalThis as any).window = {
+      midnight: {
+        mnLace: {
+          name: 'Midnight Lace Preview',
+          connect: async () => {
+            throw new Error('User rejected the request')
+          },
+        },
+      },
+    }
+
+    try {
+      await expect(connectLaceExtension()).rejects.toThrowError(
+        /Extension connection was cancelled or rejected/i
+      )
+    } finally {
+      ;(globalThis as any).window = origWindow
+    }
+  })
 })
+
