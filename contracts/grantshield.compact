@@ -1,0 +1,38 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+/*
+  GrantShield privacy model
+  -------------------------
+  Sensitive eligibility attributes are supplied as private witnesses. The
+  ledger stores only the program policy, proof result, and a nullifier that
+  prevents duplicate claims. disclose() is limited to the boolean result and
+  public program metadata; exact age, GPA, income, institution, and documents
+  never become public ledger state.
+*/
+
+export ledger verifiedClaims: Uint<32>;
+export ledger nullifiers: Set<Bytes<32>>;
+
+witness get_age(): Uint<16>;
+witness get_gpa_times_ten(): Uint<16>;
+witness get_household_income(): Uint<32>;
+witness get_enrollment_status(): Uint<1>;
+
+export circuit verify_eligibility(disclosedNullifier: Bytes<32>): [] {
+  const age = get_age();
+  const gpaTimesTen = get_gpa_times_ten();
+  const householdIncome = get_household_income();
+  const enrolled = get_enrollment_status() == 1;
+
+  assert(age < 35, "Age requirement not satisfied");
+  assert(gpaTimesTen >= 70, "GPA requirement not satisfied");
+  assert(householdIncome < 500000, "Income requirement not satisfied");
+  assert(enrolled, "Enrollment credential not satisfied");
+
+  const nullifier = disclose(disclosedNullifier);
+  assert(!nullifiers.member(nullifier), "Grant already claimed");
+  nullifiers.insert(nullifier);
+  verifiedClaims = (verifiedClaims + 1) as Uint<32>;
+}

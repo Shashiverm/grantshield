@@ -1,0 +1,12 @@
+node_modules
+dist
+*.tsbuildinfo
+managed/*
+!managed/.gitkeep
+.env
+.env.*
+!.env.example
+.vscode
+.playwright-mcp
+playwright-report
+test-results

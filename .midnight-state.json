@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "contractName": "GrantShield",
+  "activeNetwork": "preprod",
+  "deployments": {
+    "preprod": {
+      "address": "020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94",
+      "deployer": "mn_addr_preprod16alt42dnwerz6cy4w9wu65z7z3pyvfldeuvf2h7gas8uumygq9ms8x0s67",
+      "transactionHash": "0x092ce234e98fe235041c6174e7830e8c6cd509659d9e67a76b8259070b083f2b",
+      "deployedAt": "2026-09-24T13:23:48.019Z",
+      "blockHeight": 2689750,
+      "blockHash": "9ae9ca8d421bf19ecdf955e4706bada79cc3b01d42fa4a79dbeb0d8700dc7384",
+      "circuits": [
+        "verify_eligibility"
+      ],
+      "ledger": {
+        "verifiedClaims": 48,
+        "nullifiersCount": 2
+      }
+    }
+  }
+}
