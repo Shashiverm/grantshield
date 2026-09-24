@@ -9,6 +9,7 @@ import {
   midnightLedger,
   DEPLOYED_CONTRACT_INFO,
 } from '../src/utils/contract'
+import packageJson from '../package.json'
 import {
   encodeBech32m,
   connectPreprodFundedKeystore,
@@ -330,6 +331,10 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     } finally {
       ;(globalThis as any).window = origWindow
     }
+  })
+
+  it('validates Apache 2.0 open-source license configuration in package.json', () => {
+    expect(packageJson.license).toBe('Apache-2.0')
   })
 })
 

@@ -9,6 +9,19 @@ test.describe('GrantShield E2E Multi-Device & Privacy Core Suite', () => {
     await expect(heroTitle).toContainText('Prove you qualify.')
     await expect(heroTitle).toContainText('Keep your story yours.')
 
+    // Favicon and branding verification
+    await expect(page.locator('link[rel="icon"][href="/favicon.svg"]')).toHaveCount(1)
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1)
+
+    // Dedicated Logo verification in Topbar, Hero, and Footer
+    await expect(page.locator('.brand .grantshield-brand-lockup')).toBeVisible()
+    await expect(page.locator('.brand .brand-mark-dedicated')).toBeVisible()
+    await expect(page.locator('.seal-badge .grantshield-logo-mark')).toBeVisible()
+    await expect(page.locator('.footer-brand .brand-mark-dedicated')).toBeVisible()
+
+    // Footer Apache-2.0 license link
+    await expect(page.locator('footer a:has-text("Apache-2.0")')).toBeVisible()
+
     // Stats strip
     await expect(page.locator('.stats-strip')).toBeVisible()
     await expect(page.getByText('0 bytes')).toBeVisible()
