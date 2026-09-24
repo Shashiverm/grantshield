@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { Layout } from './components/Layout'
 import { EligibilityVerifier } from './components/EligibilityVerifier'
+import { GrantShieldLogo } from './components/GrantShieldLogo'
 import { useMidnight } from './hooks/useMidnight'
 import {
   ApplicantCredentials,
@@ -315,8 +316,8 @@ export function App() {
           <div className="orbit orbit-one" />
           <div className="orbit orbit-two" />
           <div className="seal-badge">
-            <div className="seal-icon-box">
-              <LockKeyhole size={28} />
+            <div className="seal-icon-box" style={{ background: 'transparent', boxShadow: 'none' }}>
+              <GrantShieldLogo variant="mark" size={48} />
             </div>
             <span className="seal-tag">ZERO-KNOWLEDGE</span>
             <span className="seal-sub">Private by Default</span>

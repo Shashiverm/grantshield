@@ -4,10 +4,12 @@ import {
   Github,
   Lock,
   Menu,
+  Scale,
   ShieldCheck,
   Wallet,
   X,
 } from 'lucide-react'
+import { GrantShieldLogo } from './GrantShieldLogo'
 import { WalletConnect } from './WalletConnect'
 import { DEPLOYED_CONTRACT_INFO } from '../utils/contract'
 
@@ -59,13 +61,7 @@ export function Layout({
       {/* Top Navigation Bar */}
       <header className="topbar">
         <a className="brand" href="#top" aria-label="GrantShield Home">
-          <span className="brand-mark">
-            <ShieldCheck size={20} strokeWidth={2.4} />
-          </span>
-          <div className="brand-text">
-            <span className="brand-title">GrantShield</span>
-            <span className="brand-network-badge">Midnight Preprod</span>
-          </div>
+          <GrantShieldLogo variant="full" size={36} />
         </a>
 
         {/* Desktop Navigation Links */}
@@ -134,7 +130,7 @@ export function Layout({
         <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-drawer-content" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
-              <span className="drawer-title">Navigation</span>
+              <GrantShieldLogo variant="compact" size={28} showBadge={false} />
               <button
                 type="button"
                 className="close-drawer-btn"
@@ -179,6 +175,14 @@ export function Layout({
                 className="mobile-nav-item github-link"
               >
                 <Github size={16} /> GitHub Source Code
+              </a>
+              <a
+                href="https://github.com/Shashiverm/grantshield/blob/main/LICENSE"
+                target="_blank"
+                rel="noreferrer"
+                className="mobile-nav-item"
+              >
+                <Scale size={16} /> Apache 2.0 License
               </a>
             </nav>
             <div className="drawer-footer">
@@ -227,10 +231,7 @@ export function Layout({
       <footer className="footer">
         <div className="footer-top">
           <div className="footer-brand">
-            <div className="brand-inline">
-              <ShieldCheck size={18} className="shield-green" />
-              <strong>GrantShield</strong>
-            </div>
+            <GrantShieldLogo variant="full" size={32} showBadge={false} />
             <p>
               Zero-knowledge eligibility infrastructure for scholarships, grants, and academic funding on
               Midnight Network.
@@ -244,7 +245,7 @@ export function Layout({
               <a href="#apply">Regional Equity Grant</a>
             </div>
             <div className="footer-col">
-              <h5>Documentation</h5>
+              <h5>Documentation &amp; Legal</h5>
               <a href="#privacy-model">Selective Disclosure</a>
               <a href="https://docs.midnight.network" target="_blank" rel="noreferrer">
                 Midnight Docs <ExternalLink size={11} />
@@ -255,6 +256,14 @@ export function Layout({
                 rel="noreferrer"
               >
                 Usage Guide <ExternalLink size={11} />
+              </a>
+              <a
+                href="https://github.com/Shashiverm/grantshield/blob/main/LICENSE"
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                Apache 2.0 License <ExternalLink size={11} />
               </a>
             </div>
             <div className="footer-col">
@@ -281,9 +290,25 @@ export function Layout({
           </div>
         </div>
         <div className="footer-bottom">
-          <span>GrantShield · Built for the Midnight</span>
-          <div className="footer-legal-links">
+          <span>GrantShield · Built for the Midnight Community</span>
+          <div className="footer-legal-links" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>Powered by Midnight Compact 0.23+ &amp; Multi-Device Wallet Layer</span>
+            <span style={{ opacity: 0.5 }}>•</span>
+            <a
+              href="https://github.com/Shashiverm/grantshield/blob/main/LICENSE"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: 'var(--primary-accent)',
+                fontWeight: 600,
+              }}
+              title="Open-source Apache 2.0 License"
+            >
+              <Scale size={12} /> Apache-2.0 Licensed
+            </a>
           </div>
         </div>
       </footer>

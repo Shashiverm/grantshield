@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 96" fill="none">
+  <defs>
+    <!-- Background Shield Gradient -->
+    <linearGradient id="gs-logo-bg" x1="16" y1="8" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#091422" />
+      <stop offset="50%" stop-color="#0d1f33" />
+      <stop offset="100%" stop-color="#050a12" />
+    </linearGradient>
+
+    <!-- Shield Border Radiant Gradient -->
+    <linearGradient id="gs-logo-border" x1="18" y1="10" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00e599" />
+      <stop offset="40%" stop-color="#10b981" />
+      <stop offset="70%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Ambient Core Glow -->
+    <radialGradient id="gs-logo-glow" cx="50" cy="46" r="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.4" />
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Checkmark Gradient -->
+    <linearGradient id="gs-logo-check" x1="36" y1="36" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a7f3d0" />
+      <stop offset="40%" stop-color="#34d399" />
+      <stop offset="90%" stop-color="#00e599" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Wordmark "Shield" Gradient -->
+    <linearGradient id="gs-text-grad" x1="210" y1="20" x2="340" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Filter for subtle drop shadow -->
+    <filter id="gs-logo-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- LOGO EMBLEM (Left: 10 to 90) -->
+  <g transform="translate(4, 0)">
+    <circle cx="50" cy="48" r="36" fill="url(#gs-logo-glow)" />
+
+    <!-- Shield Shell -->
+    <path
+      d="M50 10L18 22.5V47.5C18 69.5 31.5 84.5 50 93C68.5 84.5 82 69.5 82 47.5V22.5L50 10Z"
+      fill="url(#gs-logo-bg)"
+      stroke="url(#gs-logo-border)"
+      stroke-width="2.8"
+      stroke-linejoin="round"
+      filter="url(#gs-logo-shadow)"
+    />
+
+    <!-- Inner Facet -->
+    <path
+      d="M50 18L25 28V46C25 64 35.5 75.5 50 82.5C64.5 75.5 75 64 75 46V28L50 18Z"
+      fill="#0c1d2e"
+      stroke="#193b4f"
+      stroke-width="1.3"
+      stroke-linejoin="round"
+    />
+
+    <!-- ZK Core / Keyhole -->
+    <circle cx="50" cy="39" r="7" fill="#042f2e" stroke="#10b981" stroke-width="1.6" />
+    <circle cx="50" cy="39" r="3" fill="#34d399" />
+
+    <!-- Radiant Verification Checkmark -->
+    <path
+      d="M37 53.5L45.5 62L64.5 40"
+      stroke="url(#gs-logo-check)"
+      stroke-width="4.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Crest Sparkle -->
+    <polygon points="50,13 51.5,16.5 55,17.5 51.5,18.5 50,22 48.5,18.5 45,17.5 48.5,16.5" fill="#34d399" />
+  </g>
+
+  <!-- TYPOGRAPHY / WORDMARK (Right: 104 to 370) -->
+  <g transform="translate(108, 0)">
+    <!-- "Grant" in bold dark typography -->
+    <text
+      x="0"
+      y="52"
+      font-family="'Space Grotesk', 'DM Sans', -apple-system, sans-serif"
+      font-size="34"
+      font-weight="700"
+      letter-spacing="-0.8"
+      fill="#141f1c"
+    >Grant<tspan fill="url(#gs-text-grad)">Shield</tspan></text>
+
+    <!-- Subtitle / Tagline -->
+    <text
+      x="1"
+      y="71"
+      font-family="'DM Mono', 'Space Grotesk', monospace"
+      font-size="9.5"
+      font-weight="600"
+      letter-spacing="1.8"
+      fill="#0f766e"
+    >ZERO-KNOWLEDGE ELIGIBILITY</text>
+
+    <!-- Mini status dot & network pill -->
+    <rect x="200" y="38" width="62" height="18" rx="9" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1" />
+    <circle cx="210" cy="47" r="3" fill="#10b981" />
+    <text
+      x="218"
+      y="50"
+      font-family="'DM Mono', monospace"
+      font-size="8.5"
+      font-weight="600"
+      fill="#065f46"
+      letter-spacing="0.5"
+    >PREPROD</text>
+  </g>
+</svg>

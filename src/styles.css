@@ -152,6 +152,43 @@ a {
   letter-spacing: 0.5px;
 }
 
+.grantshield-brand-lockup {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.grantshield-brand-lockup:hover {
+  transform: translateY(-1px);
+}
+
+.brand-mark-dedicated {
+  transition: all 0.25s ease;
+}
+
+.grantshield-brand-lockup:hover .brand-mark-dedicated {
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+  transform: scale(1.03);
+}
+
+.footer-license-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary-accent);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.footer-license-badge:hover {
+  background: rgba(15, 118, 110, 0.15);
+  border-color: var(--primary-accent);
+  color: var(--primary-accent-hover);
+}
+
 .nav-links {
   display: flex;
   align-items: center;
