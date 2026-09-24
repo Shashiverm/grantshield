@@ -290,15 +290,45 @@ export async function connectLaceExtension(): Promise<{
 
     if (connector) {
       let api: any = null
-      // Midnight DApp Connector uses .connect(networkId) or .enable()
-      if (typeof connector.connect === 'function') {
+
+      // Check if already authorized
+      if (typeof connector.isEnabled === 'function') {
         try {
-          api = await connector.connect('preprod')
-        } catch {
-          api = await connector.connect()
+          const isAuthed = await connector.isEnabled()
+          if (isAuthed && typeof connector.enable === 'function') {
+            api = await connector.enable()
+          }
+        } catch {}
+      }
+
+      // If not yet enabled or isEnabled was false, call enable() or connect()
+      if (!api) {
+        if (typeof connector.enable === 'function') {
+          try {
+            api = await connector.enable()
+          } catch (enableErr: any) {
+            // Some newer connector builds use connect('preprod') or connect()
+            if (typeof connector.connect === 'function') {
+              try {
+                api = await connector.connect('preprod')
+              } catch {
+                try {
+                  api = await connector.connect()
+                } catch {
+                  throw enableErr
+                }
+              }
+            } else {
+              throw enableErr
+            }
+          }
+        } else if (typeof connector.connect === 'function') {
+          try {
+            api = await connector.connect('preprod')
+          } catch {
+            api = await connector.connect()
+          }
         }
-      } else if (typeof connector.enable === 'function') {
-        api = await connector.enable()
       }
 
       if (api) {

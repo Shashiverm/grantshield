@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   Copy,
@@ -30,11 +31,11 @@ export interface WalletConnectProps {
   isOpen?: boolean
   onOpen?: () => void
   onClose?: () => void
-  onConnectExtension: () => Promise<boolean>
-  onConnectWeb3?: () => Promise<boolean>
-  onConnectDevKeystore?: () => Promise<boolean>
-  onGenerateFreshWallet?: () => Promise<boolean>
-  onImportKey?: (hex: string) => Promise<boolean>
+  onConnectExtension: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectWeb3?: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectDevKeystore?: () => Promise<boolean | { success: boolean; error?: string }>
+  onGenerateFreshWallet?: () => Promise<boolean | { success: boolean; error?: string }>
+  onImportKey?: (hex: string) => Promise<boolean | { success: boolean; error?: string }>
   onConnectMobile: () => void
   onConnectKeystore?: (customAddress?: string) => void
   onDisconnect: () => void
@@ -139,26 +140,33 @@ export function WalletConnect({
 
       if (isDetected) {
         // Extension is detected in browser: attempt real extension handshake
-        const ok = await onConnectExtension()
+        const res = await onConnectExtension()
+        const ok = typeof res === 'boolean' ? res : res?.success
+        const errMsg = typeof res === 'object' && res?.error ? res.error : null
+
         if (ok) {
           closeModal()
           return
         }
+
         setErrorMessage(
-          'Extension connection was cancelled or rejected in your wallet prompt. Please try again.'
+          errMsg ||
+            'Extension connection was cancelled or rejected in your wallet prompt. You can retry or connect instantly with the Preprod Dev Keystore below.'
         )
       } else {
         // In browser environments without Lace extension (or test environments):
         // Connect seamlessly with the Preprod Funded Keystore
         if (onConnectDevKeystore) {
-          const ok = await onConnectDevKeystore()
+          const res = await onConnectDevKeystore()
+          const ok = typeof res === 'boolean' ? res : res?.success
           if (ok) {
             closeModal()
             return
           }
         }
         if (onGenerateFreshWallet) {
-          const ok = await onGenerateFreshWallet()
+          const res = await onGenerateFreshWallet()
+          const ok = typeof res === 'boolean' ? res : res?.success
           if (ok) {
             closeModal()
             return
@@ -169,17 +177,10 @@ export function WalletConnect({
         )
       }
     } catch (err: any) {
-      // If extension failed or threw, fall back to Dev Keystore if available
-      if (onConnectDevKeystore) {
-        try {
-          const ok = await onConnectDevKeystore()
-          if (ok) {
-            closeModal()
-            return
-          }
-        } catch {}
-      }
-      setErrorMessage(err.message || 'Failed to connect to extension.')
+      setErrorMessage(
+        err.message ||
+          'Failed to connect to extension. You can connect with the Preprod Dev Keystore below.'
+      )
     } finally {
       setConnecting(false)
     }
@@ -361,19 +362,84 @@ export function WalletConnect({
                 {errorMessage && (
                   <div
                     style={{
-                      background: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      color: '#b91c1c',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      marginBottom: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
+                      background: '#fff1f2',
+                      border: '1px solid #fecdd3',
+                      color: '#9f1239',
+                      padding: '14px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      marginBottom: '16px',
                     }}
                   >
-                    <span>{errorMessage}</span>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
+                      <AlertTriangle size={18} style={{ color: '#e11d48', flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong style={{ fontSize: '13px' }}>Wallet Connection Notice</strong>
+                        <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#be123c', lineHeight: 1.4 }}>
+                          {errorMessage}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ffe4e6' }}>
+                      <button
+                        type="button"
+                        onClick={handleDevKeystoreClick}
+                        disabled={connecting}
+                        style={{
+                          background: 'var(--primary-accent)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '7px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <Sparkles size={13} /> ⚡ Connect with Preprod Dev Keystore (1,250 tDUST)
+                      </button>
+                      {walletDetection.hasInjectedWeb3 && (
+                        <button
+                          type="button"
+                          onClick={handleWeb3Click}
+                          disabled={connecting}
+                          style={{
+                            background: '#ffffff',
+                            color: '#b45309',
+                            border: '1px solid #fde68a',
+                            padding: '7px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <ShieldCheck size={13} /> Try Web3 / MetaMask
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleExtensionClick}
+                        disabled={connecting}
+                        style={{
+                          background: '#ffffff',
+                          color: '#4b5563',
+                          border: '1px solid #e5e7eb',
+                          padding: '7px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Retry Extension
+                      </button>
+                    </div>
                   </div>
                 )}
 

@@ -22,11 +22,11 @@ interface LayoutProps {
   isWalletModalOpen?: boolean
   onOpenWalletModal?: () => void
   onCloseWalletModal?: () => void
-  onConnectExtension: () => Promise<boolean>
-  onConnectWeb3?: () => Promise<boolean>
-  onConnectDevKeystore?: () => Promise<boolean>
-  onGenerateFreshWallet?: () => Promise<boolean>
-  onImportKey?: (hex: string) => Promise<boolean>
+  onConnectExtension: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectWeb3?: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectDevKeystore?: () => Promise<boolean | { success: boolean; error?: string }>
+  onGenerateFreshWallet?: () => Promise<boolean | { success: boolean; wallet?: any }>
+  onImportKey?: (hex: string) => Promise<boolean | { success: boolean; error?: string }>
   onConnectMobile: () => void
   onConnectKeystore?: (customAddress?: string) => void
   onDisconnect: () => void

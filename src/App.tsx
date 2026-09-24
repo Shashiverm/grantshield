@@ -249,16 +249,13 @@ export function App() {
       onOpenWalletModal={() => setWalletModalOpen(true)}
       onCloseWalletModal={() => setWalletModalOpen(false)}
       onConnectExtension={async () => {
-        const res = await connectExtension()
-        return res.success
+        return await connectExtension()
       }}
       onConnectWeb3={async () => {
-        const res = await connectWeb3()
-        return res.success
+        return await connectWeb3()
       }}
       onConnectDevKeystore={async () => {
-        const res = await connectDevKeystore()
-        return res.success
+        return await connectDevKeystore()
       }}
       onGenerateFreshWallet={async () => {
         const res = await generateFreshWallet()
