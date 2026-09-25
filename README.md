@@ -1,6 +1,13 @@
+<p align="center">
+  <img src="public/grantshield-logo.svg" alt="GrantShield Logo" width="340" />
+</p>
+
 # GrantShield
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/Shashiverm/grantshield/actions/workflows/ci.yml/badge.svg)](https://github.com/Shashiverm/grantshield/actions/workflows/ci.yml)
+[![Network](https://img.shields.io/badge/Network-Midnight_Preprod-0f766e.svg)](https://explorer.preprod.midnight.network/contract/020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94)
+[![X](https://img.shields.io/badge/X-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://x.com/grantshield_mid)
 
 > Prove you qualify for scholarships and grants without exposing the sensitive personal, academic, or financial records behind it.
 
@@ -8,8 +15,9 @@
 
 ## Live Demo
 
-
-
+Live website      : ([Live](https://grantshield-sandy.vercel.app/))
+Live Demo Video   : [Demo Video](https://youtu.be/Cg_cAC9pCAo)
+X Account         : [X](https://x.com/grantshield_mid)
 ---
 
 ## Contract Address
@@ -323,3 +331,32 @@ The GrantShield Compact contract is compiled and deployed to Midnight Preprod.
    - **Consensus Block Hash:** `9ae9ca8d421bf19ecdf955e4706bada79cc3b01d42fa4a79dbeb0d8700dc7384`
    - **Explorer Link:** [https://explorer.preprod.midnight.network/contract/020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94](https://explorer.preprod.midnight.network/contract/020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94)
    - **State Persistence:** Saved in `.midnight-state.json` and consumed automatically by the dApp frontend.
+
+---
+
+## License
+
+GrantShield is released under the **[Apache License 2.0](LICENSE)**.
+
+### Why Apache 2.0?
+- **Explicit Patent Grant:** Section 3 provides an express grant of patent rights from contributors to users and developers. For cryptographic and zero-knowledge systems (such as Compact circuits and nullifier derivations), this guarantees that universities, sponsors, and applicants can use and build upon GrantShield without patent ambushes.
+- **Trademark Protection:** Section 6 protects the GrantShield name, branding, and logo assets from unauthorized commercial misappropriation.
+- **Limitation of Liability:** Sections 7 and 8 provide crucial disclaimers and liability protection for academic institutions, sponsors, and open-source contributors managing grant programs.
+- **Permissive Open-Source:** Grants complete freedom for commercial use, modification, distribution, and private development.
+
+```
+Copyright 2026 Shashiverm & GrantShield Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
