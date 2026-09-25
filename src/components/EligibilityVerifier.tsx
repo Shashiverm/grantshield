@@ -38,6 +38,7 @@ import {
   saveApplicantApplication,
   claimApplicationMilestone,
   computeDocumentHash,
+  fetchServerApplications,
 } from '../utils/contract'
 import { ProvingStatus } from '../hooks/useMidnight'
 
@@ -146,12 +147,22 @@ export function EligibilityVerifier({
 
   // Load claims and applications for connected wallet
   useEffect(() => {
+    let isCurrent = true
     if (walletConnected && walletAddress) {
       setMyClaims(getApplicantClaims(walletAddress))
       setMyApplications(getApplicantApplications(walletAddress))
+
+      fetchServerApplications(walletAddress).then((remoteApps) => {
+        if (isCurrent && remoteApps && remoteApps.length > 0) {
+          setMyApplications(remoteApps)
+        }
+      })
     } else {
       setMyClaims([])
       setMyApplications([])
+    }
+    return () => {
+      isCurrent = false
     }
   }, [walletConnected, walletAddress])
 

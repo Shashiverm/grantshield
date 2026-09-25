@@ -255,21 +255,21 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     const origWindow = (globalThis as any).window
     const passedNetworks: string[] = []
 
-    ;(globalThis as any).window = {
-      midnight: {
-        mnLace: {
-          name: 'Midnight Lace Preview',
-          connect: async (netId: string) => {
-            passedNetworks.push(`connect:${netId}`)
-            return {
-              getUnshieldedAddress: async () => 'mn_addr_preview1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
-              getNetworkId: async () => 'preview',
-              getBalance: async () => 1250,
-            }
+      ; (globalThis as any).window = {
+        midnight: {
+          mnLace: {
+            name: 'Midnight Lace Preview',
+            connect: async (netId: string) => {
+              passedNetworks.push(`connect:${netId}`)
+              return {
+                getUnshieldedAddress: async () => 'mn_addr_preview1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
+                getNetworkId: async () => 'preview',
+                getBalance: async () => 1250,
+              }
+            },
           },
         },
-      },
-    }
+      }
 
     try {
       const conn = await connectLaceExtension()
@@ -277,7 +277,7 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
       expect(conn.address).toBe('mn_addr_preview1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q')
       expect(passedNetworks).toContain('connect:preview')
     } finally {
-      ;(globalThis as any).window = origWindow
+      ; (globalThis as any).window = origWindow
     }
   })
 
@@ -285,27 +285,27 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     const origWindow = (globalThis as any).window
     const attempts: string[] = []
 
-    ;(globalThis as any).window = {
-      midnight: {
-        mnLace: {
-          name: 'Midnight Lace Extension',
-          connect: async (netId: string) => {
-            attempts.push(netId)
-            if (netId === 'preview') {
-              throw new Error('Network ID mismatch')
-            }
-            if (netId === 'preprod') {
-              return {
-                getUnshieldedAddress: async () => 'mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
-                getNetworkId: async () => 'preprod',
-                getBalance: async () => 1250,
+      ; (globalThis as any).window = {
+        midnight: {
+          mnLace: {
+            name: 'Midnight Lace Extension',
+            connect: async (netId: string) => {
+              attempts.push(netId)
+              if (netId === 'preview') {
+                throw new Error('Network ID mismatch')
               }
-            }
-            throw new Error('Network ID mismatch')
+              if (netId === 'preprod') {
+                return {
+                  getUnshieldedAddress: async () => 'mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q',
+                  getNetworkId: async () => 'preprod',
+                  getBalance: async () => 1250,
+                }
+              }
+              throw new Error('Network ID mismatch')
+            },
           },
         },
-      },
-    }
+      }
 
     try {
       const conn = await connectLaceExtension()
@@ -313,30 +313,30 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
       expect(conn.address).toBe('mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q')
       expect(attempts).toEqual(['preview', 'preprod'])
     } finally {
-      ;(globalThis as any).window = origWindow
+      ; (globalThis as any).window = origWindow
     }
   })
 
   it('rejects with clean user-friendly error if Lace connection prompt is cancelled', async () => {
     const origWindow = (globalThis as any).window
 
-    ;(globalThis as any).window = {
-      midnight: {
-        mnLace: {
-          name: 'Midnight Lace Preview',
-          connect: async () => {
-            throw new Error('User rejected the request')
+      ; (globalThis as any).window = {
+        midnight: {
+          mnLace: {
+            name: 'Midnight Lace Preview',
+            connect: async () => {
+              throw new Error('User rejected the request')
+            },
           },
         },
-      },
-    }
+      }
 
     try {
       await expect(connectLaceExtension()).rejects.toThrowError(
         /Extension connection was cancelled or rejected/i
       )
     } finally {
-      ;(globalThis as any).window = origWindow
+      ; (globalThis as any).window = origWindow
     }
   })
 
@@ -411,5 +411,37 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     expect(dupRes.success).toBe(false)
     expect(dupRes.error).toContain('already been claimed')
   })
+
+  it('guarantees custom programs (e.g. new Gen Founders) are present across sessions and visible to applicants', () => {
+    const programs = ALL_PROGRAMS
+    expect(programs.length).toBeGreaterThanOrEqual(4)
+
+    const NewGen = programs.find((p) => p.name === 'new Gen Founders')
+    expect(NewGen).toBeDefined()
+    expect(NewGen?.maxAge).toBe(20)
+    expect(NewGen?.minGpaTimesTen).toBe(87)
+    expect(NewGen?.maxIncome).toBe(600000)
+    expect(NewGen?.ownerAddress).toBe('mn_addr_ma...gqtr')
+
+    // Verify circuit evaluation against custom program
+    const validCreds = {
+      age: 19,
+      gpa: 8.8,
+      householdIncome: 500000,
+      isEnrolled: true,
+      institutionName: 'Apex Tech',
+      secretKey: 'applicant_secret',
+    }
+    const evalRes = evaluateEligibilityCircuit(validCreds, newGen!)
+    expect(evalRes.valid).toBe(true)
+
+    const invalidCreds = {
+      ...validCreds,
+      gpa: 8.5, // New Gen requires >= 8.7
+    }
+    const evalFail = evaluateEligibilityCircuit(invalidCreds, newGen!)
+    expect(evalFail.valid).toBe(false)
+  })
 })
+
 

@@ -166,7 +166,46 @@ export const DEFAULT_PROGRAM: GrantProgram = {
   ],
 }
 
+export const New_GEN_PROGRAM: GrantProgram = {
+  id: 'grant_new_gen_founders',
+  name: 'New Gen Founders',
+  tag: 'Community Grant',
+  sponsor: 'Sponsor (mn_addr_ma...gqtr)',
+  ownerAddress: 'mn_addr_ma...gqtr',
+  maxAmount: '₹2,00,000',
+  deadline: '45 days left',
+  description: 'Community supported initiative with customized privacy criteria.',
+  maxAge: 20,
+  minGpaTimesTen: 87,
+  maxIncome: 600000,
+  requireEnrollment: true,
+  rules: [
+    {
+      id: 'rule_enrolled_new',
+      label: 'Active Enrollment Verified',
+      detail: 'Credential checked in browser',
+      threshold: 'Active Student',
+      private: true,
+    },
+    {
+      id: 'rule_gpa_new',
+      label: 'GPA of at least 8.7',
+      detail: 'Academic threshold proven, score hidden',
+      threshold: '>= 8.7 GPA',
+      private: true,
+    },
+    {
+      id: 'rule_inc_new',
+      label: 'Household income below ₹6,00,000',
+      detail: 'Financial threshold proven, income hidden',
+      threshold: '< ₹6,00,000',
+      private: true,
+    },
+  ],
+}
+
 export const ALL_PROGRAMS: GrantProgram[] = [
+  New_GEN_PROGRAM,
   DEFAULT_PROGRAM,
   {
     id: 'grant_stem_2026',
@@ -225,13 +264,61 @@ export function getStoredPrograms(): GrantProgram[] {
   return ALL_PROGRAMS
 }
 
-export function saveStoredPrograms(programs: GrantProgram[]) {
+export async function fetchServerPrograms(): Promise<GrantProgram[]> {
+  try {
+    if (typeof fetch !== 'undefined') {
+      const res = await fetch('/api/programs', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          saveStoredPrograms(data, false)
+          return data
+        }
+      }
+    }
+  } catch (err) {
+    // API not reachable in offline/test environment
+  }
+  return getStoredPrograms()
+}
+
+export async function persistProgramsToServer(programs: GrantProgram[]): Promise<boolean> {
+  try {
+    if (typeof fetch !== 'undefined') {
+      const res = await fetch('/api/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(programs),
+      })
+      return res.ok
+    }
+  } catch (err) {
+    // ignore
+  }
+  return false
+}
+
+export function saveStoredPrograms(programs: GrantProgram[], broadcast = true) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_PROGRAMS_KEY, JSON.stringify(programs))
     }
   } catch (e) {
     // ignore
+  }
+
+  if (broadcast) {
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('grantshield_sync')
+        channel.postMessage({ type: 'PROGRAMS_UPDATED', programs })
+        channel.close()
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    persistProgramsToServer(programs).catch(() => { })
   }
 }
 
@@ -262,6 +349,62 @@ export function saveApplicantClaim(claim: ApplicantClaimRecord) {
 const STORAGE_APPLICATIONS_PREFIX = 'grantshield_apps_'
 const memoryApplications: Record<string, ApplicantApplicationRecord[]> = {}
 
+export async function fetchServerApplications(claimantAddress?: string): Promise<ApplicantApplicationRecord[]> {
+  try {
+    if (typeof fetch !== 'undefined') {
+      const res = await fetch('/api/applications', { cache: 'no-store' })
+      if (res.ok) {
+        const all: ApplicantApplicationRecord[] = await res.json()
+        if (Array.isArray(all)) {
+          if (claimantAddress) {
+            const userApps = all.filter((a) => a.claimantAddress.toLowerCase() === claimantAddress.toLowerCase())
+            memoryApplications[claimantAddress] = userApps
+            try {
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(`${STORAGE_APPLICATIONS_PREFIX}${claimantAddress}`, JSON.stringify(userApps))
+              }
+            } catch { }
+            return userApps
+          }
+          return all
+        }
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+  return claimantAddress ? getApplicantApplications(claimantAddress) : []
+}
+
+export async function persistApplicationsToServer(applications: ApplicantApplicationRecord[]): Promise<boolean> {
+  try {
+    if (typeof fetch !== 'undefined') {
+      let allApps: ApplicantApplicationRecord[] = []
+      try {
+        const existingRes = await fetch('/api/applications', { cache: 'no-store' })
+        if (existingRes.ok) {
+          allApps = await existingRes.json()
+        }
+      } catch { }
+
+      const updatedMap = new Map<string, ApplicantApplicationRecord>()
+      allApps.forEach((a) => updatedMap.set(a.id, a))
+      applications.forEach((a) => updatedMap.set(a.id, a))
+      const merged = Array.from(updatedMap.values())
+
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(merged),
+      })
+      return res.ok
+    }
+  } catch (err) {
+    // ignore
+  }
+  return false
+}
+
 export function getApplicantApplications(claimantAddress: string): ApplicantApplicationRecord[] {
   if (!claimantAddress) return []
   try {
@@ -286,6 +429,8 @@ export function saveApplicantApplication(app: ApplicantApplicationRecord) {
   } catch (e) {
     // ignore
   }
+
+  persistApplicationsToServer(updated).catch(() => { })
 }
 
 export function claimApplicationMilestone(

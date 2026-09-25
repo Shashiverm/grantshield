@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowUpRight,
   Award,
@@ -34,6 +34,7 @@ import {
   GrantProgram,
   getStoredPrograms,
   saveStoredPrograms,
+  fetchServerPrograms,
   midnightLedger,
 } from './utils/contract'
 
@@ -72,6 +73,67 @@ export function App() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProgram, setEditingProgram] = useState<GrantProgram | null>(null)
   const [programsList, setProgramsList] = useState<GrantProgram[]>(() => getStoredPrograms())
+
+  // Synchronize programs across tabs, incognito windows, and future visits
+  useEffect(() => {
+    let isMounted = true
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('grantshield_sync') : null
+
+    // 1. Initial fetch from server API
+    fetchServerPrograms().then((remote) => {
+      if (isMounted && remote && remote.length > 0) {
+        setProgramsList((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remote)) {
+            return remote
+          }
+          return prev
+        })
+      }
+    })
+
+    // 2. BroadcastChannel for instant cross-tab sync in the same browser profile
+    if (channel) {
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'PROGRAMS_UPDATED' && Array.isArray(event.data.programs) && isMounted) {
+          setProgramsList(event.data.programs)
+        }
+      }
+    }
+
+    // 3. Storage event listener (normal window cross-tab fallback)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'grantshield_programs_v2' && e.newValue && isMounted) {
+        try {
+          const parsed = JSON.parse(e.newValue)
+          if (Array.isArray(parsed)) {
+            setProgramsList(parsed)
+          }
+        } catch {}
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+
+    // 4. Lightweight periodic poll (2.5s) to guarantee incognito and late-opened tabs stay synchronized
+    const interval = setInterval(() => {
+      fetchServerPrograms().then((remote) => {
+        if (isMounted && remote && remote.length > 0) {
+          setProgramsList((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(remote)) {
+              return remote
+            }
+            return prev
+          })
+        }
+      })
+    }, 2500)
+
+    return () => {
+      isMounted = false
+      if (channel) channel.close()
+      window.removeEventListener('storage', handleStorage)
+      clearInterval(interval)
+    }
+  }, [])
 
   // Sponsor new program form state
   const [newProgName, setNewProgName] = useState('')
