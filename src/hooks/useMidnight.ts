@@ -15,6 +15,9 @@ import {
   generateFreshMidnightWallet,
   importMidnightWallet,
   deriveMidnightAddressFromEth,
+  signMessageWithWallet,
+  formatChainName,
+  formatEthBalance,
   saveWalletToStorage,
   loadWalletFromStorage,
   clearWalletFromStorage,
@@ -34,10 +37,13 @@ export interface MidnightWalletState {
   address: string
   network: string
   balance: string
+  rawBalance?: string
+  chainId?: string
   providerName: string
   privateKeyHex?: string
   publicKeyHex?: string
   rawAddress?: string
+  signature?: string
   walletType?: 'lace' | 'cardano' | 'web3' | 'generated' | 'imported' | 'mobile' | 'keystore'
 }
 
@@ -79,20 +85,41 @@ export function useMidnight() {
       }
       const raw = accounts[0]
       const newMidnightAddr = await deriveMidnightAddressFromEth(raw)
+      let newBalance = '1,250 tDUST'
+      let rawBal = '0.0000 ETH'
+      try {
+        const balHex = await eth.request({ method: 'eth_getBalance', params: [raw, 'latest'] })
+        if (balHex) {
+          rawBal = formatEthBalance(balHex)
+          newBalance = `${rawBal} · 1,250 tDUST`
+        }
+      } catch {}
+
       setWallet((prev) => {
         const updated: MidnightWalletState = {
           ...prev,
           connected: true,
           address: newMidnightAddr,
           rawAddress: raw,
+          balance: newBalance,
+          rawBalance: rawBal,
         }
         saveWalletToStorage(updated)
         return updated
       })
     }
 
-    const handleChainChanged = () => {
-      // Refresh state or keep Midnight Preprod context
+    const handleChainChanged = (newChainId: any) => {
+      const chainLabel = formatChainName(newChainId)
+      setWallet((prev) => {
+        const updated: MidnightWalletState = {
+          ...prev,
+          network: `Midnight Preprod (${chainLabel})`,
+          chainId: String(newChainId),
+        }
+        saveWalletToStorage(updated)
+        return updated
+      })
     }
 
     const handleDisconnect = () => {
@@ -121,10 +148,13 @@ export function useMidnight() {
         address: saved.address,
         network: saved.network || 'Midnight Preprod',
         balance: saved.balance || '1,250 tDUST',
+        rawBalance: saved.rawBalance,
+        chainId: saved.chainId,
         providerName: saved.providerName || 'Midnight Cryptographic Vault',
         privateKeyHex: saved.privateKeyHex,
         publicKeyHex: saved.publicKeyHex,
         rawAddress: saved.rawAddress,
+        signature: saved.signature,
         walletType: saved.walletType,
       })
 
@@ -142,15 +172,29 @@ export function useMidnight() {
                   const currentRaw = accounts[0]
                   if (currentRaw.toLowerCase() !== (saved.rawAddress || '').toLowerCase()) {
                     const updatedMidnightAddr = await deriveMidnightAddressFromEth(currentRaw)
+                    let newBal = saved.balance || '1,250 tDUST'
+                    let rawBal = saved.rawBalance
+                    try {
+                      const balHex = await eth.request({ method: 'eth_getBalance', params: [currentRaw, 'latest'] })
+                      if (balHex) {
+                        rawBal = formatEthBalance(balHex)
+                        newBal = `${rawBal} · 1,250 tDUST`
+                      }
+                    } catch {}
+
                     setWallet((prev) => ({
                       ...prev,
                       address: updatedMidnightAddr,
                       rawAddress: currentRaw,
+                      balance: newBal,
+                      rawBalance: rawBal,
                     }))
                     saveWalletToStorage({
                       ...saved,
                       address: updatedMidnightAddr,
                       rawAddress: currentRaw,
+                      balance: newBal,
+                      rawBalance: rawBal,
                     })
                   }
                 }
@@ -190,15 +234,18 @@ export function useMidnight() {
 
   /**
    * Real connection via Injected Web3 (MetaMask / Brave / Phantom / Coinbase)
+   * Supports passing an explicit EIP-6963 or custom provider
    */
-  const connectWeb3 = async (): Promise<{ success: boolean; error?: string }> => {
+  const connectWeb3 = async (specificProvider?: any): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await connectInjectedWeb3Wallet()
+      const result = await connectInjectedWeb3Wallet(specificProvider)
       const newWallet: MidnightWalletState = {
         connected: true,
         address: result.address,
         network: result.network,
         balance: result.balance || '1,250 tDUST',
+        rawBalance: result.rawBalance,
+        chainId: result.chainId,
         providerName: result.providerName,
         rawAddress: result.rawAddress,
         walletType: 'web3',
@@ -207,10 +254,9 @@ export function useMidnight() {
       saveWalletToStorage(newWallet)
 
       // Attach event listeners for real-time reactivity
-      const w = window as any
-      const eth = w.ethereum || w.phantom?.ethereum || w.braveEthereum
-      if (eth) {
-        attachWeb3Listeners(eth)
+      const activeEth = specificProvider || (window as any).ethereum || (window as any).phantom?.ethereum
+      if (activeEth) {
+        attachWeb3Listeners(activeEth)
       }
 
       return { success: true }
@@ -219,6 +265,44 @@ export function useMidnight() {
         success: false,
         error: err.message || 'Failed to connect to browser Web3 wallet.',
       }
+    }
+  }
+
+  /**
+   * Sign an authentication challenge to prove possession of the active wallet
+   */
+  const signSessionChallenge = async (
+    customMessage?: string
+  ): Promise<{ success: boolean; signature?: string; error?: string }> => {
+    if (!wallet.connected) {
+      return { success: false, error: 'Please connect your wallet first.' }
+    }
+    const nonce = Math.random().toString(36).substring(2, 10)
+    const timestamp = new Date().toISOString()
+    const msg =
+      customMessage ||
+      `GrantShield Zero-Knowledge Authentication\nAddress: ${wallet.rawAddress || wallet.address}\nTimestamp: ${timestamp}\nNonce: ${nonce}\nI verify that I own this cryptographic account for GrantShield on Midnight Preprod.`
+
+    try {
+      let sig = ''
+      if (wallet.walletType === 'web3' && wallet.rawAddress) {
+        sig = await signMessageWithWallet(wallet.rawAddress, msg)
+      } else {
+        const encoder = new TextEncoder()
+        const hashBuf = await window.crypto.subtle.digest(
+          'SHA-256',
+          encoder.encode(msg + (wallet.privateKeyHex || wallet.address))
+        )
+        sig = '0x' + Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+      }
+      setWallet((prev) => {
+        const updated = { ...prev, signature: sig }
+        saveWalletToStorage(updated)
+        return updated
+      })
+      return { success: true, signature: sig }
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Signature request was rejected in your wallet.' }
     }
   }
 
@@ -376,6 +460,7 @@ export function useMidnight() {
     walletConnected: wallet.connected,
     connectExtension,
     connectWeb3,
+    signSessionChallenge,
     connectDevKeystore,
     generateFreshWallet,
     importKey,

@@ -90,8 +90,11 @@ export interface GeneratedWallet {
   createdAt: string
   network: string
   balance?: string
+  rawBalance?: string
+  chainId?: string
   providerName?: string
   rawAddress?: string
+  signature?: string
   walletType?: 'lace' | 'cardano' | 'web3' | 'generated' | 'imported' | 'mobile' | 'keystore'
 }
 
@@ -184,6 +187,15 @@ export async function importMidnightWallet(privateKeyHex: string): Promise<Gener
   }
 }
 
+export interface DiscoveredWalletProvider {
+  id: string
+  name: string
+  icon?: string
+  rdns?: string
+  provider: any
+  type: 'eip6963' | 'injected' | 'midnight' | 'cardano'
+}
+
 export interface BrowserWalletDetection {
   hasMidnightLace: boolean
   hasCardanoLace: boolean
@@ -193,17 +205,83 @@ export interface BrowserWalletDetection {
   detectedWeb3Name?: string
   cardanoWallets?: string[]
   midnightWallets?: string[]
+  discoveredProviders?: DiscoveredWalletProvider[]
+}
+
+// Global registry for EIP-6963 multi-wallet discovery
+const announcedEIP6963Providers = new Map<string, DiscoveredWalletProvider>()
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('eip6963:announceProvider', (event: any) => {
+    if (event && event.detail && event.detail.info && event.detail.provider) {
+      const info = event.detail.info
+      announcedEIP6963Providers.set(info.uuid || info.name, {
+        id: info.uuid || info.name,
+        name: info.name,
+        icon: info.icon,
+        rdns: info.rdns,
+        provider: event.detail.provider,
+        type: 'eip6963',
+      })
+    }
+  })
+  try {
+    window.dispatchEvent(new Event('eip6963:requestProvider'))
+  } catch {}
+}
+
+/**
+ * Format standard EVM chain ID into human-readable network label
+ */
+export function formatChainName(chainIdHex?: string | number): string {
+  if (!chainIdHex) return 'EVM Network'
+  const hex = typeof chainIdHex === 'number' ? `0x${chainIdHex.toString(16)}` : String(chainIdHex).toLowerCase()
+  if (hex === '0x1' || hex === '1') return 'Ethereum Mainnet'
+  if (hex === '0xaa36a7' || hex === '11155111') return 'Sepolia Testnet'
+  if (hex === '0x89' || hex === '137') return 'Polygon'
+  if (hex === '0xa4b1' || hex === '42161') return 'Arbitrum One'
+  if (hex === '0xa' || hex === '10') return 'Optimism'
+  if (hex === '0x2105' || hex === '8453') return 'Base'
+  if (hex === '0x539' || hex === '1337') return 'Localhost Devnet'
+  return `EVM Chain ${hex}`
+}
+
+/**
+ * Format raw Wei balance into readable ETH / token string
+ */
+export function formatEthBalance(weiHexOrNum?: string | number | bigint): string {
+  if (!weiHexOrNum) return '0.0000 ETH'
+  try {
+    let weiBig: bigint
+    if (typeof weiHexOrNum === 'bigint') {
+      weiBig = weiHexOrNum
+    } else if (typeof weiHexOrNum === 'string') {
+      weiBig = weiHexOrNum.startsWith('0x') ? BigInt(weiHexOrNum) : BigInt(weiHexOrNum)
+    } else {
+      weiBig = BigInt(Math.floor(weiHexOrNum))
+    }
+    const ethUnits = Number(weiBig) / 1e18
+    return `${ethUnits.toFixed(4)} ETH`
+  } catch {
+    return '0.0000 ETH'
+  }
 }
 
 /**
  * Comprehensive multi-protocol browser wallet detection.
- * Inspects Midnight DApp Connector, Cardano CIP-30, and Web3 injections.
+ * Inspects Midnight DApp Connector, Cardano CIP-30, EIP-6963, and Web3 injections.
  */
 export function detectBrowserWallets(): BrowserWalletDetection {
   if (typeof window === 'undefined') {
-    return { hasMidnightLace: false, hasCardanoLace: false, hasInjectedWeb3: false }
+    return { hasMidnightLace: false, hasCardanoLace: false, hasInjectedWeb3: false, discoveredProviders: [] }
   }
   const w = window as any
+  const discovered: DiscoveredWalletProvider[] = []
+
+  // Collect EIP-6963 providers
+  announcedEIP6963Providers.forEach((prov) => {
+    discovered.push(prov)
+  })
 
   // 1. Detect Midnight wallets
   let hasMidnight = false
@@ -216,12 +294,30 @@ export function detectBrowserWallets(): BrowserWalletDetection {
     if (w.midnight.mnLace) {
       hasMidnight = true
       detectedMidnightName = 'Midnight Lace'
+      discovered.push({
+        id: 'midnight_mnlace',
+        name: 'Midnight Lace (Preview/Preprod)',
+        provider: w.midnight.mnLace,
+        type: 'midnight',
+      })
     } else if (w.midnight.lace) {
       hasMidnight = true
       detectedMidnightName = 'Midnight Lace'
+      discovered.push({
+        id: 'midnight_lace',
+        name: 'Midnight Lace Extension',
+        provider: w.midnight.lace,
+        type: 'midnight',
+      })
     } else if (keys.length > 0) {
       hasMidnight = true
       detectedMidnightName = w.midnight[keys[0]]?.name || `Midnight Wallet (${keys[0]})`
+      discovered.push({
+        id: `midnight_${keys[0]}`,
+        name: detectedMidnightName || 'Midnight Connector',
+        provider: w.midnight[keys[0]],
+        type: 'midnight',
+      })
     }
   }
 
@@ -236,15 +332,27 @@ export function detectBrowserWallets(): BrowserWalletDetection {
     if (w.cardano.lace) {
       hasCardano = true
       detectedCardanoName = 'Lace (Cardano)'
+      discovered.push({
+        id: 'cardano_lace',
+        name: 'Lace Dual Wallet (Cardano CIP-30)',
+        provider: w.cardano.lace,
+        type: 'cardano',
+      })
     } else if (keys.length > 0) {
       hasCardano = true
       detectedCardanoName = w.cardano[keys[0]]?.name || keys[0]
+      discovered.push({
+        id: `cardano_${keys[0]}`,
+        name: detectedCardanoName || keys[0],
+        provider: w.cardano[keys[0]],
+        type: 'cardano',
+      })
     }
   }
 
   // 3. Detect Injected Web3 wallets (MetaMask, Brave, Phantom, Coinbase, etc.)
   const eth = w.ethereum || w.phantom?.ethereum || w.braveEthereum
-  const hasWeb3 = !!eth
+  const hasWeb3 = !!eth || announcedEIP6963Providers.size > 0
   let detectedWeb3Name: string | undefined
 
   if (eth) {
@@ -254,6 +362,34 @@ export function detectBrowserWallets(): BrowserWalletDetection {
     else if (eth.isPhantom) detectedWeb3Name = 'Phantom'
     else if (eth.isRabby) detectedWeb3Name = 'Rabby'
     else detectedWeb3Name = 'Injected Web3'
+
+    // If multiple providers exist under window.ethereum.providers
+    if (Array.isArray(eth.providers) && eth.providers.length > 0) {
+      eth.providers.forEach((subEth: any, index: number) => {
+        let name = 'Injected Provider'
+        if (subEth.isMetaMask) name = 'MetaMask'
+        else if (subEth.isCoinbaseWallet) name = 'Coinbase Wallet'
+        else if (subEth.isPhantom) name = 'Phantom'
+        else if (subEth.isBraveWallet) name = 'Brave Wallet'
+        else if (subEth.isRabby) name = 'Rabby'
+
+        if (!discovered.some((d) => d.name === name)) {
+          discovered.push({
+            id: `injected_prov_${index}`,
+            name,
+            provider: subEth,
+            type: 'injected',
+          })
+        }
+      })
+    } else if (!discovered.some((d) => d.name === detectedWeb3Name)) {
+      discovered.push({
+        id: 'injected_primary',
+        name: detectedWeb3Name || 'Injected Web3 Wallet',
+        provider: eth,
+        type: 'injected',
+      })
+    }
   }
 
   return {
@@ -265,6 +401,7 @@ export function detectBrowserWallets(): BrowserWalletDetection {
     detectedWeb3Name,
     cardanoWallets,
     midnightWallets,
+    discoveredProviders: discovered,
   }
 }
 
@@ -573,21 +710,24 @@ export async function connectLaceExtension(): Promise<{
 }
 
 /**
- * Real connection with Injected Web3 wallet (MetaMask / Brave / Phantom / Coinbase)
- * Requests real accounts via eth_requestAccounts and derives a valid Midnight Preprod address
+ * Real connection with Injected Web3 wallet (MetaMask / Brave / Phantom / Coinbase / Rabby)
+ * Requests real accounts via eth_requestAccounts, queries active chain & native balance,
+ * and derives a valid Midnight Preprod address.
  */
-export async function connectInjectedWeb3Wallet(): Promise<{
+export async function connectInjectedWeb3Wallet(customProvider?: any): Promise<{
   address: string
   network: string
   providerName: string
   rawAddress: string
   balance: string
+  rawBalance?: string
+  chainId?: string
 }> {
   const w = window as any
-  const eth = w.ethereum || w.phantom?.ethereum || w.braveEthereum
+  const eth = customProvider || w.ethereum || w.phantom?.ethereum || w.braveEthereum
 
   if (!eth) {
-    throw new Error('No Web3 wallet extension (MetaMask, Brave, Phantom) detected in this browser.')
+    throw new Error('No Web3 wallet extension (MetaMask, Brave, Phantom, Coinbase) detected in this browser.')
   }
 
   const accounts: string[] = await eth.request({ method: 'eth_requestAccounts' })
@@ -601,24 +741,85 @@ export async function connectInjectedWeb3Wallet(): Promise<{
   const hash = await getCrypto().subtle.digest('SHA-256', bytes)
   const midnightAddress = encodeBech32m('mn_addr_preprod', new Uint8Array(hash))
 
-  const providerName = eth.isBraveWallet
-    ? 'Brave Wallet'
-    : eth.isMetaMask
-    ? 'MetaMask'
-    : eth.isCoinbaseWallet
-    ? 'Coinbase Wallet'
-    : eth.isPhantom
-    ? 'Phantom'
-    : eth.isRabby
-    ? 'Rabby Wallet'
-    : 'Injected Web3 Wallet'
+  let chainId: string = '0x1'
+  let chainLabel: string = 'Ethereum'
+  try {
+    const rawChain = await eth.request({ method: 'eth_chainId' })
+    if (rawChain) {
+      chainId = String(rawChain)
+      chainLabel = formatChainName(chainId)
+    }
+  } catch (e) {
+    console.warn('Could not query eth_chainId:', e)
+  }
+
+  let formattedBalance = '0.0000 ETH'
+  try {
+    const balHex = await eth.request({
+      method: 'eth_getBalance',
+      params: [rawAddress, 'latest'],
+    })
+    if (balHex) {
+      formattedBalance = formatEthBalance(balHex)
+    }
+  } catch (e) {
+    console.warn('Could not query eth_getBalance:', e)
+  }
+
+  let providerName = 'Injected Web3 Wallet'
+  if (customProvider && customProvider.name) {
+    providerName = customProvider.name
+  } else if (eth.isBraveWallet) {
+    providerName = 'Brave Wallet'
+  } else if (eth.isMetaMask) {
+    providerName = 'MetaMask'
+  } else if (eth.isCoinbaseWallet) {
+    providerName = 'Coinbase Wallet'
+  } else if (eth.isPhantom) {
+    providerName = 'Phantom'
+  } else if (eth.isRabby) {
+    providerName = 'Rabby Wallet'
+  }
 
   return {
     address: midnightAddress,
-    network: 'Midnight Preprod (Web3)',
+    network: `Midnight Preprod (${chainLabel})`,
     providerName,
     rawAddress,
-    balance: '1,250 tDUST',
+    balance: `${formattedBalance} · 1,250 tDUST`,
+    rawBalance: formattedBalance,
+    chainId,
+  }
+}
+
+/**
+ * Sign an arbitrary authentication message or application commitment using personal_sign
+ * to cryptographically verify real wallet possession.
+ */
+export async function signMessageWithWallet(
+  rawAddress: string,
+  message: string,
+  customProvider?: any
+): Promise<string> {
+  const w = window as any
+  const eth = customProvider || w.ethereum || w.phantom?.ethereum || w.braveEthereum
+
+  if (!eth || typeof eth.request !== 'function') {
+    throw new Error('No active Web3 provider available for cryptographic signing.')
+  }
+
+  // Hex encode UTF-8 string
+  const utf8Bytes = new TextEncoder().encode(message)
+  const hexMessage = '0x' + Array.from(utf8Bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  try {
+    const signature = await eth.request({
+      method: 'personal_sign',
+      params: [hexMessage, rawAddress],
+    })
+    return signature
+  } catch (err: any) {
+    throw new Error(err.message || 'Signature request was cancelled in your wallet.')
   }
 }
 

@@ -17,15 +17,18 @@ interface LayoutProps {
   children: ReactNode
   walletConnected: boolean
   address?: string
+  rawAddress?: string
   network?: string
   balance?: string
   providerName?: string
   privateKeyHex?: string
+  signature?: string
   isWalletModalOpen?: boolean
   onOpenWalletModal?: () => void
   onCloseWalletModal?: () => void
   onConnectExtension: () => Promise<boolean | { success: boolean; error?: string }>
-  onConnectWeb3?: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectWeb3?: (specificProvider?: any) => Promise<boolean | { success: boolean; error?: string }>
+  onSignSessionChallenge?: (customMessage?: string) => Promise<{ success: boolean; signature?: string; error?: string }>
   onConnectDevKeystore?: () => Promise<boolean | { success: boolean; error?: string }>
   onGenerateFreshWallet?: () => Promise<boolean | { success: boolean; wallet?: any }>
   onImportKey?: (hex: string) => Promise<boolean | { success: boolean; error?: string }>
@@ -38,15 +41,18 @@ export function Layout({
   children,
   walletConnected,
   address,
+  rawAddress,
   network,
   balance,
   providerName,
   privateKeyHex,
+  signature,
   isWalletModalOpen,
   onOpenWalletModal,
   onCloseWalletModal,
   onConnectExtension,
   onConnectWeb3,
+  onSignSessionChallenge,
   onConnectDevKeystore,
   onGenerateFreshWallet,
   onImportKey,
@@ -96,15 +102,18 @@ export function Layout({
           <WalletConnect
             connected={walletConnected}
             address={address}
+            rawAddress={rawAddress}
             network={network}
             balance={balance}
             providerName={providerName}
             privateKeyHex={privateKeyHex}
+            signature={signature}
             isOpen={isWalletModalOpen}
             onOpen={onOpenWalletModal}
             onClose={onCloseWalletModal}
             onConnectExtension={onConnectExtension}
             onConnectWeb3={onConnectWeb3}
+            onSignSessionChallenge={onSignSessionChallenge}
             onConnectDevKeystore={onConnectDevKeystore}
             onGenerateFreshWallet={onGenerateFreshWallet}
             onImportKey={onImportKey}

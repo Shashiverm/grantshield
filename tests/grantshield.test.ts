@@ -8,6 +8,11 @@ import {
   generateNullifier,
   midnightLedger,
   DEPLOYED_CONTRACT_INFO,
+  computeDocumentHash,
+  getApplicantApplications,
+  saveApplicantApplication,
+  claimApplicationMilestone,
+  ApplicantApplicationRecord,
 } from '../src/utils/contract'
 import packageJson from '../package.json'
 import {
@@ -18,6 +23,8 @@ import {
   detectBrowserWallets,
   deriveMidnightAddressFromEth,
   connectLaceExtension,
+  formatChainName,
+  formatEthBalance,
 } from '../src/utils/midnightWallet'
 
 describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
@@ -335,6 +342,74 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
 
   it('validates Apache 2.0 open-source license configuration in package.json', () => {
     expect(packageJson.license).toBe('Apache-2.0')
+  })
+
+  it('formats EVM chain IDs and Wei balances into human-readable strings', () => {
+    expect(formatChainName('0x1')).toBe('Ethereum Mainnet')
+    expect(formatChainName('0xaa36a7')).toBe('Sepolia Testnet')
+    expect(formatChainName('0x89')).toBe('Polygon')
+    expect(formatChainName('0xa4b1')).toBe('Arbitrum One')
+    expect(formatEthBalance('0xde0b6b3a7640000')).toBe('1.0000 ETH')
+    expect(formatEthBalance(0)).toBe('0.0000 ETH')
+  })
+
+  it('computes real client-side cryptographic SHA-256 document hash', async () => {
+    const blob = new Blob(['sample-academic-transcript-content'], { type: 'text/plain' })
+    const hash = await computeDocumentHash(blob)
+    expect(hash).toMatch(/^0x[a-f0-9]{64}$/)
+  })
+
+  it('manages applicant applications and milestone disbursement escrow', () => {
+    const testAddress = 'mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q'
+    const app: ApplicantApplicationRecord = {
+      id: 'GS-APP-2026-9999',
+      grantId: 'grant_aurora_2026',
+      programName: 'Aurora Scholars Fund',
+      maxAmount: '₹1,50,000',
+      claimantAddress: testAddress,
+      claimantName: 'Jane Doe',
+      institution: 'Apex Tech',
+      degree: 'Computer Science',
+      graduationYear: '2026',
+      documents: [],
+      proof: {
+        valid: true,
+        grantId: 'grant_aurora_2026',
+        nullifier: 'nullifier_test_ms',
+        proofHash: 'zkp_test',
+        verifiedAt: new Date().toISOString(),
+        ruleResults: { ageSatisfied: true, gpaSatisfied: true, incomeSatisfied: true, enrollmentSatisfied: true },
+      },
+      nullifier: 'nullifier_test_ms',
+      txHash: '0x123',
+      status: 'verified',
+      submittedAt: new Date().toISOString(),
+      disbursedAmount: '0% Disbursed',
+      milestones: [
+        { id: 'ms_1', title: 'Enrollment', percentage: 50, amount: '50%', claimed: false },
+        { id: 'ms_2', title: 'Midterm', percentage: 50, amount: '50%', claimed: false },
+      ],
+      zkAttestationId: 'ZKA-TEST',
+    }
+
+    saveApplicantApplication(app)
+    const retrieved = getApplicantApplications(testAddress)
+    expect(retrieved.length).toBeGreaterThanOrEqual(1)
+    expect(retrieved[0].id).toBe('GS-APP-2026-9999')
+
+    // Claim milestone 1
+    const claimRes = claimApplicationMilestone(testAddress, 'GS-APP-2026-9999', 'ms_1')
+    expect(claimRes.success).toBe(true)
+    expect(claimRes.txHash).toMatch(/^0x/)
+
+    const updated = getApplicantApplications(testAddress)
+    expect(updated[0].milestones[0].claimed).toBe(true)
+    expect(updated[0].disbursedAmount).toBe('50% Disbursed')
+
+    // Duplicate claim on same milestone should fail
+    const dupRes = claimApplicationMilestone(testAddress, 'GS-APP-2026-9999', 'ms_1')
+    expect(dupRes.success).toBe(false)
+    expect(dupRes.error).toContain('already been claimed')
   })
 })
 

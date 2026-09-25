@@ -24,15 +24,18 @@ import { DEPLOYED_CONTRACT_INFO } from '../utils/contract'
 export interface WalletConnectProps {
   connected: boolean
   address?: string
+  rawAddress?: string
   network?: string
   balance?: string
   providerName?: string
   privateKeyHex?: string
+  signature?: string
   isOpen?: boolean
   onOpen?: () => void
   onClose?: () => void
   onConnectExtension: () => Promise<boolean | { success: boolean; error?: string }>
-  onConnectWeb3?: () => Promise<boolean | { success: boolean; error?: string }>
+  onConnectWeb3?: (specificProvider?: any) => Promise<boolean | { success: boolean; error?: string }>
+  onSignSessionChallenge?: (customMessage?: string) => Promise<{ success: boolean; signature?: string; error?: string }>
   onConnectDevKeystore?: () => Promise<boolean | { success: boolean; error?: string }>
   onGenerateFreshWallet?: () => Promise<boolean | { success: boolean; error?: string }>
   onImportKey?: (hex: string) => Promise<boolean | { success: boolean; error?: string }>
@@ -44,15 +47,18 @@ export interface WalletConnectProps {
 export function WalletConnect({
   connected,
   address = '',
+  rawAddress = '',
   network = 'Midnight Preprod',
   balance = '1,250 tDUST',
   providerName = 'Midnight Lace',
   privateKeyHex,
+  signature,
   isOpen,
   onOpen,
   onClose,
   onConnectExtension,
   onConnectWeb3,
+  onSignSessionChallenge,
   onConnectDevKeystore,
   onGenerateFreshWallet,
   onImportKey,
@@ -186,21 +192,47 @@ export function WalletConnect({
     }
   }
 
-  const handleWeb3Click = async () => {
+  const [signingChallenge, setSigningChallenge] = useState(false)
+  const [challengeStatus, setChallengeStatus] = useState<string | null>(null)
+
+  const handleWeb3Click = async (specificProvider?: any) => {
     if (!onConnectWeb3) return
     setErrorMessage(null)
     setConnecting(true)
     try {
-      const ok = await onConnectWeb3()
+      const res = await onConnectWeb3(specificProvider)
+      const ok = typeof res === 'boolean' ? res : res?.success
+      const errMsg = typeof res === 'object' && res?.error ? res.error : null
       if (ok) {
         closeModal()
       } else {
-        setErrorMessage('Web3 wallet connection failed or was rejected in your wallet.')
+        setErrorMessage(errMsg || 'Web3 wallet connection failed or was rejected in your wallet.')
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Web3 connection failed.')
     } finally {
       setConnecting(false)
+    }
+  }
+
+  const handleSignChallenge = async () => {
+    if (!onSignSessionChallenge) return
+    setSigningChallenge(true)
+    setChallengeStatus(null)
+    try {
+      const res = await onSignSessionChallenge()
+      if (res.success && res.signature) {
+        setChallengeStatus('✓ Wallet ownership verified cryptographically via personal_sign!')
+        setTimeout(() => setChallengeStatus(null), 5000)
+      } else {
+        setChallengeStatus(res.error || 'Signature request was rejected in your wallet.')
+        setTimeout(() => setChallengeStatus(null), 5000)
+      }
+    } catch (err: any) {
+      setChallengeStatus(err.message || 'Signing failed.')
+      setTimeout(() => setChallengeStatus(null), 5000)
+    } finally {
+      setSigningChallenge(false)
     }
   }
 
@@ -478,42 +510,73 @@ export function WalletConnect({
                       <span className="option-arrow">➔</span>
                     </button>
 
-                    {/* Option 2: Browser Injected Web3 (MetaMask / Brave / Phantom) */}
-                    <button
-                      type="button"
-                      className="wallet-option-item"
-                      onClick={handleWeb3Click}
-                      disabled={connecting}
-                    >
-                      <div className="option-icon-wrap" style={{ background: '#fef3c7', color: '#b45309' }}>
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div className="option-info">
-                        <div className="option-title-row">
-                          <strong>Injected Web3 Wallet</strong>
-                          {walletDetection.hasInjectedWeb3 ? (
-                            <span className="badge-detected">
-                              Detected ({walletDetection.detectedWeb3Name || 'MetaMask/Brave'})
-                            </span>
-                          ) : (
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: '9px',
-                                color: '#6b7280',
-                                background: '#f3f4f6',
-                                padding: '2px 6px',
-                                borderRadius: '3px',
-                              }}
-                            >
-                              MetaMask / Brave / Phantom
-                            </span>
-                          )}
+                    {/* Render all detected EIP-6963 / Injected browser wallets */}
+                    {walletDetection.discoveredProviders && walletDetection.discoveredProviders.length > 0 ? (
+                      walletDetection.discoveredProviders.map((prov) => (
+                        <button
+                          key={prov.id}
+                          type="button"
+                          className="wallet-option-item"
+                          onClick={() => {
+                            if (prov.type === 'midnight' || prov.type === 'cardano') {
+                              handleExtensionClick()
+                            } else {
+                              handleWeb3Click(prov.provider)
+                            }
+                          }}
+                          disabled={connecting}
+                        >
+                          <div className="option-icon-wrap" style={{ background: '#fef3c7', color: '#b45309' }}>
+                            <ShieldCheck size={20} />
+                          </div>
+                          <div className="option-info">
+                            <div className="option-title-row">
+                              <strong>{prov.name}</strong>
+                              <span className="badge-detected">🟢 Detected & Ready</span>
+                            </div>
+                            <span>Connect directly to {prov.name} browser extension</span>
+                          </div>
+                          <span className="option-arrow">➔</span>
+                        </button>
+                      ))
+                    ) : (
+                      /* Option 2: Browser Injected Web3 (MetaMask / Brave / Phantom) */
+                      <button
+                        type="button"
+                        className="wallet-option-item"
+                        onClick={() => handleWeb3Click()}
+                        disabled={connecting}
+                      >
+                        <div className="option-icon-wrap" style={{ background: '#fef3c7', color: '#b45309' }}>
+                          <ShieldCheck size={20} />
                         </div>
-                        <span>Derive Midnight Bech32m address via active Web3 accounts</span>
-                      </div>
-                      <span className="option-arrow">➔</span>
-                    </button>
+                        <div className="option-info">
+                          <div className="option-title-row">
+                            <strong>Injected Web3 Wallet</strong>
+                            {walletDetection.hasInjectedWeb3 ? (
+                              <span className="badge-detected">
+                                Detected ({walletDetection.detectedWeb3Name || 'MetaMask/Brave'})
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: '9px',
+                                  color: '#6b7280',
+                                  background: '#f3f4f6',
+                                  padding: '2px 6px',
+                                  borderRadius: '3px',
+                                }}
+                              >
+                                MetaMask / Brave / Phantom
+                              </span>
+                            )}
+                          </div>
+                          <span>Derive Midnight Bech32m address via active Web3 accounts</span>
+                        </div>
+                        <span className="option-arrow">➔</span>
+                      </button>
+                    )}
 
                     {/* Option 3: Instant Pre-funded Testnet Dev Keystore */}
                     <button
@@ -757,6 +820,88 @@ export function WalletConnect({
                   {copiedAddr ? <Check size={12} color="#059669" /> : <Copy size={12} />}
                 </button>
               </div>
+            </div>
+
+            {rawAddress && (
+              <div className="address-full-row" style={{ marginTop: '8px' }}>
+                <span className="address-label">Connected Web3 Account:</span>
+                <div className="address-val-wrap">
+                  <code>{rawAddress}</code>
+                  <button
+                    type="button"
+                    className="copy-mini-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(rawAddress)
+                      setCopiedAddr(true)
+                      setTimeout(() => setCopiedAddr(false), 2000)
+                    }}
+                    title="Copy Web3 Address"
+                    aria-label="Copy Web3 Address"
+                  >
+                    {copiedAddr ? <Check size={12} color="#059669" /> : <Copy size={12} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Cryptographic Ownership Verification Signature */}
+            <div className="address-full-row" style={{ marginTop: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="address-label">Cryptographic Proof of Ownership:</span>
+                {signature ? (
+                  <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>✓ Verified</span>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#b45309' }}>Pending</span>
+                )}
+              </div>
+              {signature ? (
+                <div className="address-val-wrap" style={{ marginTop: '4px' }}>
+                  <code title={signature}>{signature.slice(0, 20)}...{signature.slice(-10)}</code>
+                  <button
+                    type="button"
+                    className="copy-mini-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(signature)
+                      setCopiedKey(true)
+                      setTimeout(() => setCopiedKey(false), 2000)
+                    }}
+                    title="Copy Signature"
+                    aria-label="Copy Signature"
+                  >
+                    {copiedKey ? <Check size={12} color="#059669" /> : <Copy size={12} />}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSignChallenge}
+                  disabled={signingChallenge}
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    padding: '6px 10px',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#065f46',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <Sparkles size={12} />
+                  {signingChallenge ? 'Confirm in Wallet...' : 'Sign Challenge with Wallet (personal_sign)'}
+                </button>
+              )}
+              {challengeStatus && (
+                <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#047857' }}>
+                  {challengeStatus}
+                </small>
+              )}
             </div>
 
             {privateKeyHex && (

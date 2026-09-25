@@ -49,6 +49,7 @@ export function App() {
     walletConnected,
     connectExtension,
     connectWeb3,
+    signSessionChallenge,
     connectDevKeystore,
     generateFreshWallet,
     importKey,
@@ -242,19 +243,22 @@ export function App() {
     <Layout
       walletConnected={walletConnected}
       address={wallet.address}
+      rawAddress={wallet.rawAddress}
       network={wallet.network}
       balance={wallet.balance}
       providerName={wallet.providerName}
       privateKeyHex={wallet.privateKeyHex}
+      signature={wallet.signature}
       isWalletModalOpen={walletModalOpen}
       onOpenWalletModal={() => setWalletModalOpen(true)}
       onCloseWalletModal={() => setWalletModalOpen(false)}
       onConnectExtension={async () => {
         return await connectExtension()
       }}
-      onConnectWeb3={async () => {
-        return await connectWeb3()
+      onConnectWeb3={async (specificProvider) => {
+        return await connectWeb3(specificProvider)
       }}
+      onSignSessionChallenge={signSessionChallenge}
       onConnectDevKeystore={async () => {
         return await connectDevKeystore()
       }}
@@ -386,6 +390,9 @@ export function App() {
           <EligibilityVerifier
             walletConnected={walletConnected}
             walletAddress={wallet.address}
+            rawAddress={wallet.rawAddress}
+            walletSignature={wallet.signature}
+            onSignSessionChallenge={signSessionChallenge}
             programs={programsList}
             onConnectWallet={() => setWalletModalOpen(true)}
             provingStatus={provingStatus}
