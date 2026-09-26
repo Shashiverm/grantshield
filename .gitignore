@@ -1,8 +1,6 @@
 node_modules
 dist
 *.tsbuildinfo
-managed/*
-!managed/.gitkeep
 .env
 .env.*
 !.env.example

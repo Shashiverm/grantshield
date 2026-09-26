@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../contracts/",
+  "sources": ["grantshield.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAAA;;;;;;;;;;;;;;;;;;;;;;MAsBA,AAAA,kBAeC;;;;;cAfiC,oBAA6B;;;;;;;;;;;;;;;;;;yCAA7B,oBAA6B;;;;;;;;;oDAA7B,oBAA6B;;;OAe9D;;;;;;;;GACA;EAtCD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAcA;;;;;;;;;yEAAuC;IACvC;;;;;;;;;;yEAAyC;;;;;;;GAuBxC;EArBD,AAAA,UAA4B;;0DAA5B,OAA4B;;;;;;;;;;;;;;GAAA;EAC5B,AAAA,oBAAsC;;0DAAtC,iBAAsC;;;;;;;;;;;;;;GAAA;EACtC,AAAA,uBAAyC;;0DAAzC,oBAAyC;;;;;;;;;;;;;;GAAA;EACzC,AAAA,wBAAyC;;0DAAzC,qBAAyC;;;;;;;;;;;;;;GAAA;EAEzC,AAAA,qBAeC,4BAfiC,oBAA6B;UACvD,KAAe;UACf,aAAiC;UACjC,iBAAwC;;UACxC,UAAuC;;;4BAEtC,KAAG;4BACH,aAAW;;4BACX,iBAAe;;4BACf,UAAQ;UAET,WAAwC,GAAnB,oBAAkB;qDACrC;;;;;;;;;;;4KAAkB,WAAS;;;;0HAAjB;;IAClB;;;;;;;;;;2HAAkB,WAAS;;;;;wEAAjB;UACV,KAAc;;;;;6CAAI;;;;;;;;;;;kHAAc;;;IAAhC;;;;;;;2HAAA,KAAc;;yEAAA;;GACf;;;;;;;;;;;;;;;;;;;;IAvBD;qCAAA;;;;;;;;;;;0GAAuC;KAAA;IACvC;;;;;uCAAA;;;;;;;;;;;;;;;;4GAAyC;;;;;;uCAAzC;;;;;;;;;;;;4GAAyC;;;;;;;;;;;;;;uCAAzC;;;;;;;;;;;;;;;4GAAyC;;;;;;;;;KAAA;;;;;;;;;;;;;;;"
+}
