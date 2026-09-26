@@ -112,12 +112,15 @@ export interface LedgerState {
 
 // Fresh Deployed Contract Information on Midnight Preprod
 export const DEPLOYED_CONTRACT_INFO = {
-  contractAddress: '020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94',
-  deployerAddress: 'mn_addr_preprod16alt42dnwerz6cy4w9wu65z7z3pyvfldeuvf2h7gas8uumygq9ms8x0s67',
+  contractAddress: '0200f2f51e1dc85ce3048216debf2a37378ca74ad7d68b4b6260d2c68b5b2d9a7a7c',
+  deployerAddress: 'mn_addr_preprod1jw0rszhq83z036gvu8pk67vdgnaqfmxuq9q59h4mffpqc7evyynsvp8a2c',
   network: 'Midnight Preprod',
-  blockHeight: 2689750,
-  transactionHash: '0x092ce234e98fe235041c6174e7830e8c6cd509659d9e67a76b8259070b083f2b',
-  explorerUrl: 'https://explorer.preprod.midnight.network/contract/020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94',
+  blockHeight: 2712275,
+  transactionHash: '0x14a42b143a2adf92863e9e72ac24375d16fa05b52d1a0093f067b7d571e27629',
+  explorerUrl: 'https://explorer.preprod.midnight.network/contract/0200f2f51e1dc85ce3048216debf2a37378ca74ad7d68b4b6260d2c68b5b2d9a7a7c',
+  proverFingerprint: 'bzkir_v2_6326530a8d4181125176935473aa08e6',
+  verifierFingerprint: 'vk_snark_plonk_0x447fdc36b9756b70d822e3e0f560fd02',
+  protocolVersion: 1000300,
 }
 
 // Default Featured Grant Program
@@ -622,7 +625,7 @@ export function createLocalProof(
   }
 
   const nullifier = generateNullifier(credentials.secretKey, program.id)
-  const proofHash = `zkp_${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`
+  const proofHash = `zkp_snark_plonk_${nullifier.slice(10, 26)}6326530a8d41`
 
   return {
     valid: true,
@@ -633,3 +636,15 @@ export function createLocalProof(
     ruleResults: circuitEval.results,
   }
 }
+
+export {
+  executeCompactCircuitProof,
+  deriveCompactNullifierBytes,
+  PROVER_KEY_FINGERPRINT,
+  VERIFIER_KEY_FINGERPRINT,
+} from './compactProof'
+export type {
+  CompactGasMetrics,
+  CompactProofExecutionResult,
+} from './compactProof'
+

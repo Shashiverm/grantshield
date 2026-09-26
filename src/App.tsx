@@ -65,6 +65,8 @@ export function App() {
     executeProofAndClaim,
     resetStatus,
     deployedContract,
+    networkTelemetry,
+    redeployContract,
   } = useMidnight()
 
   const [walletModalOpen, setWalletModalOpen] = useState(false)
@@ -334,6 +336,9 @@ export function App() {
       }}
       onConnectMobile={connectMobile}
       onDisconnect={disconnectWallet}
+      networkTelemetry={networkTelemetry}
+      deployedContract={deployedContract}
+      onRedeploy={redeployContract}
     >
       {/* Toast Notification */}
       {toastMessage && (

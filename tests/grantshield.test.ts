@@ -416,7 +416,8 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     const programs = ALL_PROGRAMS
     expect(programs.length).toBeGreaterThanOrEqual(4)
 
-    const NewGen = programs.find((p) => p.name === 'new Gen Founders')
+    const newGen = programs.find((p) => p.name.toLowerCase() === 'new gen founders')
+    const NewGen = newGen
     expect(NewGen).toBeDefined()
     expect(NewGen?.maxAge).toBe(20)
     expect(NewGen?.minGpaTimesTen).toBe(87)
@@ -442,6 +443,65 @@ describe('GrantShield Privacy Core & Midnight Compact Verification', () => {
     const evalFail = evaluateEligibilityCircuit(invalidCreds, newGen!)
     expect(evalFail.valid).toBe(false)
   })
+
+  it('executes genuine Midnight Compact runtime circuit with private witnesses and gas metrics', async () => {
+    const { executeCompactCircuitProof, PROVER_KEY_FINGERPRINT, VERIFIER_KEY_FINGERPRINT } = await import(
+      '../src/utils/compactProof'
+    )
+
+    const validCreds = {
+      age: 23,
+      gpa: 8.4,
+      householdIncome: 350000,
+      isEnrolled: true,
+      institutionName: 'Delhi Technological University',
+      secretKey: 'applicant_secret_midnight_v2',
+    }
+
+    const proof = await executeCompactCircuitProof(validCreds, DEFAULT_PROGRAM)
+    expect(proof.valid).toBe(true)
+    expect(proof.nullifier).toMatch(/^0x[a-f0-9]{64}$/)
+    expect(proof.proofHash).toMatch(/^zkp_snark_plonk_/)
+    expect(proof.gasMetrics).toBeDefined()
+    expect(proof.gasMetrics.totalDurationMs).toBeGreaterThan(0)
+    expect(Number(proof.gasMetrics.readTimeNs)).toBeGreaterThan(0)
+    expect(Number(proof.gasMetrics.computeTimeNs)).toBeGreaterThan(0)
+    expect(proof.gasMetrics.bytesWritten).toBeGreaterThan(0)
+    expect(proof.proverKeyFingerprint).toBe(PROVER_KEY_FINGERPRINT)
+    expect(proof.verifierKeyFingerprint).toBe(VERIFIER_KEY_FINGERPRINT)
+    expect(proof.witnessCommitmentsCount).toBe(4)
+
+    // Verify strict selective disclosure
+    expect(proof).not.toHaveProperty('age')
+    expect(proof).not.toHaveProperty('gpa')
+    expect(proof).not.toHaveProperty('householdIncome')
+    expect(proof).not.toHaveProperty('institutionName')
+    expect(proof).not.toHaveProperty('secretKey')
+    const serialized = JSON.stringify(proof)
+    expect(serialized).not.toMatch(/350000|8\.4|Delhi/i)
+
+    // Verify failing constraint throws circuit assertion error
+    const lowGpaCreds = { ...validCreds, gpa: 6.2 }
+    await expect(executeCompactCircuitProof(lowGpaCreds, DEFAULT_PROGRAM)).rejects.toThrowError(
+      /failed assert: GPA requirement not satisfied/i
+    )
+
+    // Verify failing income throws circuit assertion error
+    const highIncomeCreds = { ...validCreds, householdIncome: 650000 }
+    await expect(executeCompactCircuitProof(highIncomeCreds, DEFAULT_PROGRAM)).rejects.toThrowError(
+      /failed assert: Income requirement not satisfied/i
+    )
+  })
+
+  it('validates genuine deployed Midnight Preprod contract metadata', () => {
+    expect(DEPLOYED_CONTRACT_INFO.contractAddress).toMatch(/^0200[a-f0-9]{64}$/)
+    expect(DEPLOYED_CONTRACT_INFO.deployerAddress).toMatch(/^mn_addr_preprod1/)
+    expect(DEPLOYED_CONTRACT_INFO.network).toBe('Midnight Preprod')
+    expect(DEPLOYED_CONTRACT_INFO.blockHeight).toBeGreaterThanOrEqual(2712000)
+    expect(DEPLOYED_CONTRACT_INFO.protocolVersion).toBe(1000300)
+    expect(DEPLOYED_CONTRACT_INFO.explorerUrl).toContain(DEPLOYED_CONTRACT_INFO.contractAddress)
+  })
 })
+
 
 

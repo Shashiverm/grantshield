@@ -1,21 +1,24 @@
 {
-  "version": 2,
+  "version": 3,
   "contractName": "GrantShield",
   "activeNetwork": "preprod",
   "deployments": {
     "preprod": {
-      "address": "020027f1074e1244fa824da668cbdb29d12c89dd35fc8f380cf8f8ecd3da54c02f94",
-      "deployer": "mn_addr_preprod16alt42dnwerz6cy4w9wu65z7z3pyvfldeuvf2h7gas8uumygq9ms8x0s67",
-      "transactionHash": "0x092ce234e98fe235041c6174e7830e8c6cd509659d9e67a76b8259070b083f2b",
-      "deployedAt": "2026-09-24T13:23:48.019Z",
-      "blockHeight": 2689750,
-      "blockHash": "9ae9ca8d421bf19ecdf955e4706bada79cc3b01d42fa4a79dbeb0d8700dc7384",
+      "address": "0200f2f51e1dc85ce3048216debf2a37378ca74ad7d68b4b6260d2c68b5b2d9a7a7c",
+      "deployer": "mn_addr_preprod1jw0rszhq83z036gvu8pk67vdgnaqfmxuq9q59h4mffpqc7evyynsvp8a2c",
+      "transactionHash": "0x14a42b143a2adf92863e9e72ac24375d16fa05b52d1a0093f067b7d571e27629",
+      "deployedAt": "2026-09-26T02:55:43.246Z",
+      "blockHeight": 2712275,
+      "blockHash": "5747d2768cf7190bee0bba34d8dbe6283cbde5af5ea8fbd9a8df51f7139b52b0",
+      "protocolVersion": 1000300,
       "circuits": [
         "verify_eligibility"
       ],
+      "proverFingerprint": "bzkir_v2_6326530a8d4181125176935473aa08e6",
+      "verifierFingerprint": "vk_snark_plonk_0x447fdc36b9756b70d822e3e0f560fd02",
       "ledger": {
-        "verifiedClaims": 48,
-        "nullifiersCount": 2
+        "verifiedClaims": 0,
+        "nullifiersCount": 0
       }
     }
   }
