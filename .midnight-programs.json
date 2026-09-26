@@ -1,5 +1,42 @@
 [
   {
+    "id": "grant_1790353052628",
+    "name": "Web3 Developer Programm",
+    "tag": "Community Grant",
+    "sponsor": "Sponsor (mn_addr_pr...3w7q)",
+    "maxAmount": "₹2,00,000",
+    "deadline": "45 days left",
+    "description": "Community supported initiative with customized privacy criteria.",
+    "maxAge": 20,
+    "minGpaTimesTen": 65,
+    "maxIncome": 600000,
+    "requireEnrollment": true,
+    "ownerAddress": "mn_addr_preprod1qq9v8cxu73q5668gslw57kndh6k2z8u3n9hwp3w7q",
+    "rules": [
+      {
+        "id": "rule_enrolled_1790353052628",
+        "label": "Active Enrollment Verified",
+        "detail": "Credential checked in browser",
+        "threshold": "Active Student",
+        "private": true
+      },
+      {
+        "id": "rule_gpa_1790353052628",
+        "label": "GPA of at least 6.5",
+        "detail": "Academic threshold proven, score hidden",
+        "threshold": ">= 6.5 GPA",
+        "private": true
+      },
+      {
+        "id": "rule_inc_1790353052628",
+        "label": "Household income below ₹6,00,000",
+        "detail": "Financial threshold proven, income hidden",
+        "threshold": "< ₹6,00,000",
+        "private": true
+      }
+    ]
+  },
+  {
     "id": "grant_new_gen_founders",
     "name": "New Gen Founders",
     "tag": "Community Grant",

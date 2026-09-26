@@ -16,7 +16,9 @@
 ## Live Demo
 
 Live website      : ([Live](https://grantshield-sandy.vercel.app/))
+
 Live Demo Video   : [Demo Video](https://youtu.be/Cg_cAC9pCAo)
+
 X Account         : [X](https://x.com/grantshield_mid)
 ---
 
@@ -202,109 +204,19 @@ See [docs/USAGE.md](docs/USAGE.md) for a comprehensive, non-technical walkthroug
 
 ---
 
-## Product X Profile
+## Application Preview
 
-
-
----
-
-## Playwright Test & Visual Verification Gallery
-
-### 1. Multi-Device Wallet Connection (PC & Desktop)
-*Supports native Midnight Lace extension (`window.midnight.mnLace`), browser extensions, and pre-funded Testnet Dev Keystore (1,250 tDUST) for deterministic cross-device evaluation.*
-
-![Multi-Device Wallet Modal Desktop](docs/screenshots/wallet_modal_desktop.png)
-
----
-
-### 2. Mobile Wallet Connection (QR Code Pairing & Deep Links)
-*Mobile users can scan an interactive SVG QR code or click deep-links (`midnight://connect`) to connect mobile wallets seamlessly without browser extension lock-in.*
-
-![Mobile QR Code Pairing](docs/screenshots/wallet_modal_mobile_qr.png)
-
----
-
-### 3. Responsive Mobile Viewport (iPhone & Android @ 390×844)
-*The entire GrantShield application dynamically rearranges into a responsive vertical flow with touch-friendly sliders, readable typography, and compact metric badges.*
-
-![Mobile Viewport 390px](docs/screenshots/mobile_viewport_390.png)
-
----
-
-### 4. Mobile Slide-In Navigation Drawer
-*On viewports below 768px, the top navigation condenses into a clean slide-in drawer allowing instant switching between the Applicant Portal and Sponsor Console.*
-
-![Mobile Slide-in Drawer](docs/screenshots/mobile_drawer.png)
-
----
-
-### 5. Responsive Tablet Viewport (iPad & Surface @ 768×1024)
-*Fluid layout smoothly accommodates medium-screen tablets with adaptive columns, flexible padding, and sticky metric overview cards.*
-
-![Tablet Viewport 768px](docs/screenshots/tablet_viewport_768.png)
-
----
-
-### 6. Desktop Applicant Portal & Private Data Vault
-*Shows the full desktop UI, private witness sliders (age, GPA, income, enrollment), and real-time constraint verification before proof generation.*
+### 1. Applicant Portal & Private Data Vault
+*Applicants configure sensitive criteria locally in browser memory and generate zero-knowledge proofs without exposing PII.*
 
 ![Applicant Portal Overview](docs/screenshots/app_applicant_portal.png)
 
----
-
-### 7. Wallet Connected & Ready to Prove
-*Lace wallet connected to Midnight Preprod with formatted testnet address and active proving trigger.*
-
-![Wallet Connected](docs/screenshots/wallet_connected.png)
-
----
-
-### 8. ZK Proof Verified & Grant Dispatched
-*Demonstrates a successful proof execution, award confirmation, cryptographic nullifier, and transaction hash.*
-
-![Claim Confirmed](docs/screenshots/claim_confirmed_full.png)
-
----
-
-### 9. Zero-Knowledge Attestation Certificate
-*Inspect the selective disclosure payload: sensitive applicant data is mathematically redacted with zero PII disclosure.*
-
-![Verification Certificate](docs/screenshots/claim_certificate.png)
-
----
-
-### 10. Client-Side Assertion Failure (Low GPA)
-*When criteria are not met, the circuit assertion halts locally in the browser with zero data leakage.*
-
-![Assertion Error](docs/screenshots/assertion_error.png)
-
----
-
-### 11. Duplicate Claim Prevention on Midnight Ledger
-*Attempting a second claim with the same credentials triggers an immediate nullifier collision rejection on-chain.*
-
-![Duplicate Claim Prevented](docs/screenshots/duplicate_claim_prevented.png)
-
----
-
-### 12. Sponsor Console (Live Preprod Metrics)
-*Sponsors track total endowment budget, application velocity, approved claims, and live verified proofs without handling student PII.*
+### 2. Sponsor Console & Live Preprod Metrics
+*Sponsors configure criteria thresholds, monitor endowment disbursements, and track verified claims in real time.*
 
 ![Sponsor Console](docs/screenshots/sponsor_console.png)
 
----
-
-### 13. Sponsor Program Creator Modal
-*Enables organizations to launch new grant programs with custom mathematical thresholds.*
-
-![Create Program Modal](docs/screenshots/create_program_modal.png)
-
----
-
-### 14. Real Cryptographic Keypair & Vault Dropdown
-*Inspect your generated Bech32m Midnight testnet address, reveal or copy the 32-byte private key securely stored in your browser's local vault, or jump directly to the contract on Midnight Explorer.*
-
-![Wallet Dropdown Menu](docs/screenshots/wallet_dropdown_menu.png)
+> 📖 **Comprehensive Visual Walkthrough:** For multi-device views (Mobile, Tablet, Desktop), wallet pairing guides, and attestation receipts, see [docs/USAGE.md](docs/USAGE.md).
 
 ---
 
